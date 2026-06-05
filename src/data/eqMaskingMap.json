@@ -1,0 +1,335 @@
+{
+  "_version": "1.0",
+  "_ref": "Pro Audio Engineering — Masking resolution values based on ISO 226 / AES practice",
+
+  "instruments": [
+    {
+      "id": "kick",
+      "name": "킥 드럼",
+      "color": "#ff3b30",
+      "freqRanges": {
+        "sub":      [30,  80],
+        "body":     [80,  300],
+        "attack":   [2000, 6000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 60,   "Q": 0.7,  "dB": 3,  "type": "boost", "band": "Sub Punch",    "reason": "예배당 저역 흡수 보상. 회중 착석 시 저역 감쇠 심함." },
+          { "freq": 250,  "Q": 1.4,  "dB": -5, "type": "cut",   "band": "Low-Mid Mud",  "reason": "교회 반사음에 의한 250Hz 누적 제거. 베이스와 마스킹 해소." },
+          { "freq": 500,  "Q": 2.0,  "dB": -3, "type": "cut",   "band": "Boxiness",     "reason": "킥 박스 울림 제거. Q2.0으로 타이트하게." },
+          { "freq": 3000, "Q": 2.8,  "dB": 4,  "type": "boost", "band": "Attack Click", "reason": "명료도 확보. 보컬과 충돌하므로 dB는 3~4dB 이내 제한." }
+        ],
+        "concert": [
+          { "freq": 50,   "Q": 0.7,  "dB": 4,  "type": "boost", "band": "Sub Punch",    "reason": "콘서트 대형 PA 저역 익스텐션. 물리적 체감." },
+          { "freq": 200,  "Q": 1.0,  "dB": -4, "type": "cut",   "band": "Low-Mid",      "reason": "베이스 기타와 주파수 분리." },
+          { "freq": 400,  "Q": 1.4,  "dB": -3, "type": "cut",   "band": "Mud",          "reason": "중저역 누적 방지." },
+          { "freq": 4000, "Q": 2.0,  "dB": 3,  "type": "boost", "band": "Beater Attack","reason": "어택 트랜지언트 명료화. 클릭감." }
+        ]
+      },
+      "maskingConflicts": ["bass", "keys"],
+      "compGuide": {
+        "ratio": "4:1 ~ 6:1",
+        "attack": "10~30ms",
+        "release": "200~400ms",
+        "threshold": "-18 ~ -12 dBFS",
+        "GR": "4~8 dB",
+        "transientNote": "킥 트랜지언트는 5~20ms 범위 어택. 어택 타임을 10ms 이하로 설정하면 클릭(Beater Attack)이 컴프에 눌려 명료도 손실. 어택을 15~25ms로 열어두어 초기 트랜지언트 통과 후 바디를 잡는다.",
+        "parallel": true,
+        "parallelRatio": "40% Dry / 60% Wet 권장"
+      }
+    },
+    {
+      "id": "snare",
+      "name": "스네어",
+      "color": "#ffb300",
+      "freqRanges": {
+        "body":    [150, 400],
+        "crack":   [800, 2000],
+        "sizzle":  [6000, 14000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 120,  "Q": 2.0,  "dB": -4, "type": "cut",   "band": "Low Thud",  "reason": "예배 스네어 저역 울림 차단. 보컬 저역과 분리." },
+          { "freq": 250,  "Q": 1.4,  "dB": -5, "type": "cut",   "band": "Mud",       "reason": "교회 반사음 250Hz 누적 킬 (킥과 동일 구역)." },
+          { "freq": 900,  "Q": 2.0,  "dB": 4,  "type": "boost", "band": "Crack",     "reason": "스네어 크랙 정의. 회중 잡음 위로 올리기." },
+          { "freq": 9000, "Q": 0.7,  "dB": 3,  "type": "boost", "band": "Air Sizzle","reason": "스네어 질감. 보컬과 8kHz 이하 충돌 방지." }
+        ],
+        "concert": [
+          { "freq": 100,  "Q": 2.0,  "dB": -3, "type": "cut",   "band": "Low Boom",  "reason": "킥 서브 영역 침범 방지." },
+          { "freq": 400,  "Q": 1.0,  "dB": -4, "type": "cut",   "band": "Boxiness",  "reason": "스네어 박스 공명 제거." },
+          { "freq": 1000, "Q": 2.8,  "dB": 5,  "type": "boost", "band": "Crack",     "reason": "라이브 콘서트 임팩트 극대화." },
+          { "freq": 8000, "Q": 0.7,  "dB": 4,  "type": "boost", "band": "Sizzle",    "reason": "심벌과 분리된 스네어 에어감." }
+        ]
+      },
+      "maskingConflicts": ["vocal", "guitar"],
+      "compGuide": {
+        "ratio": "3:1 ~ 5:1",
+        "attack": "5~15ms",
+        "release": "80~150ms",
+        "threshold": "-20 ~ -14 dBFS",
+        "GR": "4~6 dB",
+        "transientNote": "스네어 초기 트랜지언트(Crack)는 1~5ms의 극히 짧은 충격파. 어택 5ms 이하 설정 시 크랙이 뭉개짐. 5~12ms 범위에서 크랙 보존, 바디(50ms 이후)를 컴프가 제어. 릴리즈는 다음 비트 전에 GR 복귀해야 펌핑 방지.",
+        "parallel": true,
+        "parallelRatio": "50% Dry / 50% Wet"
+      }
+    },
+    {
+      "id": "bass",
+      "name": "베이스 기타",
+      "color": "#00ff88",
+      "freqRanges": {
+        "sub":         [40,  100],
+        "fundamental": [80,  200],
+        "body":        [200, 600],
+        "definition":  [600, 1500]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 80,   "Q": 0.7,  "dB": 3,  "type": "boost", "band": "Fundamental", "reason": "교회 저역 흡수 보상. 킥 60Hz와 분리하여 베이스는 80Hz 중심." },
+          { "freq": 200,  "Q": 1.0,  "dB": -4, "type": "cut",   "band": "Mud",          "reason": "보컬 200Hz와 마스킹. 교회 잔향 200~300Hz 누적." },
+          { "freq": 700,  "Q": 2.0,  "dB": 2,  "type": "boost", "band": "Definition",   "reason": "소형 스피커에서 베이스 인식. 작은 교회 사이드필." },
+          { "freq": 2500, "Q": 1.4,  "dB": -3, "type": "cut",   "band": "String Buzz",  "reason": "베이스 프렛 버즈 감소." }
+        ],
+        "concert": [
+          { "freq": 60,   "Q": 0.7,  "dB": 2,  "type": "boost", "band": "Sub",          "reason": "킥과 충돌 주의. 킥 50Hz, 베이스 60~80Hz로 분리." },
+          { "freq": 300,  "Q": 1.4,  "dB": -4, "type": "cut",   "band": "Mud",          "reason": "대형 PA 중저역 누적." },
+          { "freq": 800,  "Q": 2.0,  "dB": 3,  "type": "boost", "band": "Growl",        "reason": "콘서트 베이스 존재감." },
+          { "freq": 3000, "Q": 1.4,  "dB": -2, "type": "cut",   "band": "String Noise", "reason": "베이스 노이즈 제거." }
+        ]
+      },
+      "maskingConflicts": ["kick", "keys"],
+      "compGuide": {
+        "ratio": "3:1 ~ 4:1",
+        "attack": "20~50ms",
+        "release": "100~200ms",
+        "threshold": "-18 ~ -10 dBFS",
+        "GR": "3~6 dB",
+        "transientNote": "베이스 핑거링 트랜지언트는 킥보다 느린 5~30ms 범위. 어택 20ms 이상으로 핑거 어택 질감 보존. 너무 빠른 어택(5ms 이하)은 베이스 특유의 '묵직함'을 제거함. 사이드체인 컴프(킥 사이드체인 → 베이스 컴프)로 킥-베이스 주파수 충돌 해결.",
+        "parallel": false,
+        "sidechain": "kick"
+      }
+    },
+    {
+      "id": "vocal",
+      "name": "리드 보컬",
+      "color": "#0a84ff",
+      "freqRanges": {
+        "proximity":  [80,  300],
+        "warmth":     [300, 700],
+        "presence":   [1500,5000],
+        "air":        [8000,20000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 120,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",  "reason": "마이크 핸들링 노이즈, 에어컨, HVAC 차단. 120Hz 18dB/oct HPF." },
+          { "freq": 300,  "Q": 1.0,  "dB": -3, "type": "cut",   "band": "Proximity",    "reason": "마이크 근접효과 제거. 교회 핸드마이크 사용 시 400Hz 이하 누적." },
+          { "freq": 800,  "Q": 1.4,  "dB": -2, "type": "cut",   "band": "Nasal",        "reason": "코맹맹이 소리 제거. 보컬 음역대에 따라 500~1kHz 탐색." },
+          { "freq": 3000, "Q": 1.4,  "dB": 3,  "type": "boost", "band": "Presence",     "reason": "회중 소리 위로 보컬 침투력 강화. 스네어 크랙과 충돌 주의." },
+          { "freq": 5000, "Q": 2.0,  "dB": -2, "type": "cut",   "band": "Harshness",    "reason": "5kHz 치찰음 통제. 예배 환경 장시간 청취 피로도." },
+          { "freq": 12000,"Q": 0.7,  "dB": 3,  "type": "boost", "band": "Air",          "reason": "보컬 에어감. 심벌 고역과 겹치지 않는 12kHz 이상 부스트." }
+        ],
+        "concert": [
+          { "freq": 100,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",  "reason": "100Hz HPF 12dB/oct. 무대 진동 차단." },
+          { "freq": 250,  "Q": 1.0,  "dB": -4, "type": "cut",   "band": "Mud",          "reason": "라이브 보컬 200~300Hz 누적." },
+          { "freq": 2500, "Q": 1.4,  "dB": 4,  "type": "boost", "band": "Presence",     "reason": "콘서트 보컬 존재감. 기타/키보드와 충돌 구간 스캔 필요." },
+          { "freq": 4000, "Q": 2.8,  "dB": -3, "type": "cut",   "band": "Sibilance",    "reason": "치찰음 통제. de-esser 대용 수동 EQ." },
+          { "freq": 10000,"Q": 0.7,  "dB": 3,  "type": "boost", "band": "Air",          "reason": "콘서트 보컬 에어감." }
+        ]
+      },
+      "maskingConflicts": ["snare", "guitar", "keys"],
+      "compGuide": {
+        "ratio": "2:1 ~ 3:1",
+        "attack": "5~20ms",
+        "release": "50~120ms",
+        "threshold": "-24 ~ -18 dBFS",
+        "GR": "3~6 dB",
+        "transientNote": "보컬 트랜지언트는 자음(Consonant) 구간에서 발생. 'P', 'T', 'K' 파열음은 5~15ms 초기 스파이크. 어택 10ms로 설정 시 자음 질감 보존하면서 모음 안정화. 릴리즈를 너무 빠르게(50ms 이하) 설정 시 모음 감쇠 시 펌핑. 오토 릴리즈 권장. 보컬 다이나믹 범위 크므로 GR 6dB 이상 시 2단 직렬 컴프(Optical + VCA) 권장.",
+        "parallel": false,
+        "deEsser": { "freq": 5500, "Q": 8.0, "threshold": "-18dBFS" }
+      }
+    },
+    {
+      "id": "guitar",
+      "name": "일렉 기타",
+      "color": "#bf5af2",
+      "freqRanges": {
+        "fundamental": [80,  300],
+        "body":        [300, 1000],
+        "presence":    [1000,5000],
+        "bite":        [4000,8000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 150,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",  "reason": "기타 저역 완전 차단. 교회 혼탁 방지. 킥·베이스 영역 양보." },
+          { "freq": 400,  "Q": 1.4,  "dB": -4, "type": "cut",   "band": "Mud",          "reason": "기타 중저역 혼탁. 건반과 마스킹." },
+          { "freq": 1200, "Q": 2.0,  "dB": -3, "type": "cut",   "band": "Honk",         "reason": "기타 앰프 혼크 제거. 보컬 1~2kHz 공간 확보." },
+          { "freq": 3500, "Q": 1.4,  "dB": 3,  "type": "boost", "band": "Presence",     "reason": "기타 선명도. 보컬 3kHz와 부딪히지 않도록 3.5kHz 이상 타깃." }
+        ],
+        "concert": [
+          { "freq": 100,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",  "reason": "100Hz HPF 12dB/oct." },
+          { "freq": 350,  "Q": 1.4,  "dB": -3, "type": "cut",   "band": "Boxy",         "reason": "기타 캐비닛 박스 울림." },
+          { "freq": 1000, "Q": 2.0,  "dB": -4, "type": "cut",   "band": "Mid Honk",     "reason": "보컬 1kHz 공간 양보." },
+          { "freq": 4000, "Q": 1.4,  "dB": 3,  "type": "boost", "band": "Pick Attack",  "reason": "피크 어택 명료화." }
+        ]
+      },
+      "maskingConflicts": ["vocal", "keys"],
+      "compGuide": {
+        "ratio": "2:1 ~ 3:1",
+        "attack": "10~30ms",
+        "release": "80~200ms",
+        "threshold": "-20 ~ -12 dBFS",
+        "GR": "2~4 dB",
+        "transientNote": "기타 피킹 트랜지언트는 10~30ms. 어택 10ms 이하 설정 시 피킹 어택 질감(스트링 어택)이 압축됨. 기타는 어택 타임을 넉넉히 (20~30ms) 주어 트랜지언트 자연스럽게 통과. GR은 2~4dB로 가볍게 — 기타는 컴프보다 EQ와 레벨 오토메이션으로 다이나믹 제어가 더 효과적.",
+        "parallel": false
+      }
+    },
+    {
+      "id": "keys",
+      "name": "건반/키보드",
+      "color": "#30d158",
+      "freqRanges": {
+        "bass":    [40,  200],
+        "mid":     [200, 2000],
+        "high":    [2000,8000],
+        "shimmer": [8000,20000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 200,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",  "reason": "건반 저역 차단. 베이스·킥과 충돌. 200Hz HPF로 피아노 저역 양보." },
+          { "freq": 500,  "Q": 1.0,  "dB": -3, "type": "cut",   "band": "Mud",          "reason": "키보드 패드 중역 혼탁." },
+          { "freq": 1200, "Q": 2.0,  "dB": -3, "type": "cut",   "band": "Nasal Mid",    "reason": "코맹맹이 중역. 보컬 1kHz 양보." },
+          { "freq": 6000, "Q": 0.7,  "dB": 2,  "type": "boost", "band": "Shimmer",      "reason": "오르간/패드 에어감. 보컬 고역 공간 침범 않도록 6kHz 이상만." }
+        ],
+        "concert": [
+          { "freq": 150,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",  "reason": "150Hz HPF." },
+          { "freq": 400,  "Q": 1.4,  "dB": -4, "type": "cut",   "band": "Mud",          "reason": "중저역 혼탁." },
+          { "freq": 1500, "Q": 1.4,  "dB": -3, "type": "cut",   "band": "Piano Honk",   "reason": "피아노 1.5kHz 공명." },
+          { "freq": 8000, "Q": 0.7,  "dB": 3,  "type": "boost", "band": "Sparkle",      "reason": "키보드 고역 반짝임." }
+        ]
+      },
+      "maskingConflicts": ["bass", "guitar", "vocal"],
+      "compGuide": {
+        "ratio": "2:1 ~ 2.5:1",
+        "attack": "30~60ms",
+        "release": "150~300ms",
+        "threshold": "-18 ~ -12 dBFS",
+        "GR": "2~4 dB",
+        "transientNote": "건반 트랜지언트는 악기 타입에 따라 큰 차이. 피아노는 해머 타격 후 0~10ms 강한 어택. 패드/스트링은 슬로우 어택(50ms+). 피아노 컴프는 어택 30~50ms로 해머 질감 보존. 패드에는 컴프 불필요하거나 극히 가벼운 리미터로 대체. 오르간 레슬리 케비닛 시뮬레이션 시 빠른 어택(5ms)이 오히려 회전감 강조.",
+        "parallel": false
+      }
+    },
+    {
+      "id": "cymbal",
+      "name": "심벌/오버헤드",
+      "color": "#64d2ff",
+      "freqRanges": {
+        "body":  [200, 1000],
+        "sheen": [3000,8000],
+        "air":   [8000,20000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 300,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",  "reason": "심벌 저역 완전 차단. 리버브 꼬리 통제." },
+          { "freq": 800,  "Q": 1.4,  "dB": -3, "type": "cut",   "band": "Clang",        "reason": "심벌 쨍그랑 금속음 억제. 예배 잔향 누적." },
+          { "freq": 5000, "Q": 0.7,  "dB": -3, "type": "cut",   "band": "Harshness",    "reason": "장시간 예배에서 고역 피로도 감소." },
+          { "freq": 12000,"Q": 0.5,  "dB": 2,  "type": "boost", "band": "Air",          "reason": "심벌 에어감. 12kHz 이상 쉘빙 부스트." }
+        ],
+        "concert": [
+          { "freq": 200,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",  "reason": "200Hz HPF." },
+          { "freq": 600,  "Q": 1.4,  "dB": -3, "type": "cut",   "band": "Clang",        "reason": "심벌 클랑." },
+          { "freq": 10000,"Q": 0.5,  "dB": 3,  "type": "boost", "band": "Shimmer",      "reason": "콘서트 심벌 반짝임." }
+        ]
+      },
+      "maskingConflicts": ["vocal"],
+      "compGuide": {
+        "ratio": "2:1",
+        "attack": "30~60ms",
+        "release": "200~400ms",
+        "threshold": "-18 ~ -12 dBFS",
+        "GR": "2~3 dB",
+        "transientNote": "심벌 어택은 스틱 타격 0~5ms 극초기 트랜지언트 후 수백ms에 걸친 지속음. 컴프 어택 30ms+ 로 개방하여 스틱 타격감 보존. 오버헤드 마이크 특성상 페어 메이터링(M/S 또는 스테레오 링크) 권장.",
+        "parallel": false
+      }
+    }
+  ],
+
+  "maskingPairs": [
+    {
+      "pair": ["kick", "bass"],
+      "conflictZones": [[50, 200], [200, 400]],
+      "resolution": {
+        "principle": "주파수 분할 소유권(Frequency Ownership). 킥은 50~70Hz 소유, 베이스는 80~120Hz 소유. 두 악기 모두 200~300Hz를 컷.",
+        "church": [
+          { "instr": "kick", "freq": 60,  "Q": 0.7, "dB": 3,  "type": "boost" },
+          { "instr": "kick", "freq": 250, "Q": 1.4, "dB": -5, "type": "cut"   },
+          { "instr": "bass", "freq": 80,  "Q": 0.7, "dB": 3,  "type": "boost" },
+          { "instr": "bass", "freq": 200, "Q": 1.0, "dB": -4, "type": "cut"   }
+        ],
+        "concert": [
+          { "instr": "kick", "freq": 50,  "Q": 0.7, "dB": 4,  "type": "boost" },
+          { "instr": "kick", "freq": 200, "Q": 1.0, "dB": -4, "type": "cut"   },
+          { "instr": "bass", "freq": 60,  "Q": 0.7, "dB": 2,  "type": "boost" },
+          { "instr": "bass", "freq": 300, "Q": 1.4, "dB": -4, "type": "cut"   }
+        ]
+      }
+    },
+    {
+      "pair": ["snare", "vocal"],
+      "conflictZones": [[800, 4000]],
+      "resolution": {
+        "principle": "스네어 크랙(1~2kHz)과 보컬 프레즌스(2~4kHz) 충돌. 스네어는 1kHz 집중, 보컬은 3kHz 집중으로 구분.",
+        "church": [
+          { "instr": "snare", "freq": 1000, "Q": 2.8, "dB": 4,  "type": "boost" },
+          { "instr": "snare", "freq": 3000, "Q": 2.0, "dB": -3, "type": "cut"   },
+          { "instr": "vocal", "freq": 1500, "Q": 2.0, "dB": -2, "type": "cut"   },
+          { "instr": "vocal", "freq": 3000, "Q": 1.4, "dB": 3,  "type": "boost" }
+        ],
+        "concert": [
+          { "instr": "snare", "freq": 1000, "Q": 2.8, "dB": 5,  "type": "boost" },
+          { "instr": "vocal", "freq": 2500, "Q": 1.4, "dB": 4,  "type": "boost" }
+        ]
+      }
+    },
+    {
+      "pair": ["guitar", "vocal"],
+      "conflictZones": [[800, 4000]],
+      "resolution": {
+        "principle": "기타와 보컬의 가장 치열한 마스킹 구간. 기타는 1kHz 덕킹, 보컬이 이 구간 소유.",
+        "church": [
+          { "instr": "guitar", "freq": 1200, "Q": 2.0, "dB": -3, "type": "cut"   },
+          { "instr": "guitar", "freq": 3500, "Q": 1.4, "dB": 3,  "type": "boost" },
+          { "instr": "vocal",  "freq": 3000, "Q": 1.4, "dB": 3,  "type": "boost" }
+        ],
+        "concert": [
+          { "instr": "guitar", "freq": 1000, "Q": 2.0, "dB": -4, "type": "cut"   },
+          { "instr": "vocal",  "freq": 2500, "Q": 1.4, "dB": 4,  "type": "boost" }
+        ]
+      }
+    }
+  ],
+
+  "spaceProfiles": {
+    "church": {
+      "name": "교회 예배",
+      "RT60": "1.5 ~ 3.0s",
+      "SPLAtFOH": "75 ~ 85 dBSPL",
+      "concerns": ["250Hz 저역 누적 (반사음)", "보컬 명료도 우선", "장시간 청취 피로", "회중 착석 저역 흡수"],
+      "globalTips": [
+        "모든 채널 250Hz 통합 컷 (-3 ~ -5dB, Q=1.0): 교회 고질 문제",
+        "보컬 채널 3kHz 리프트로 회중 대화 소음 극복",
+        "드럼 어택은 교회에서 더 귀에 거슬리므로 컴프 어택 타임 빠르게"
+      ]
+    },
+    "concert": {
+      "name": "라이브 콘서트",
+      "RT60": "0.8 ~ 1.5s",
+      "SPLAtFOH": "95 ~ 110 dBSPL",
+      "concerns": ["대형 PA 저역 누적", "고SPL 고역 위험", "무대 피드백", "다채널 마이킹"],
+      "globalTips": [
+        "킥·베이스 서브 소니카 충돌: 사이드체인 컴프 필수",
+        "FOH 85phon 이상에서 저역이 더 크게 들림 (등청감곡선) — 저역 과감히 컷",
+        "보컬 피드백 여유(Gain Before Feedback) 확보: 프레즌스 이상 주파수 조심"
+      ]
+    }
+  }
+}

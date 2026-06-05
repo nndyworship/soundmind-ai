@@ -1,0 +1,95 @@
+name: SoundMind Self-Healing Harness
+
+# ── 트리거 ────────────────────────────────────────────────────────────────
+on:
+  # Supabase Webhook → GitHub Repository Dispatch
+  repository_dispatch:
+    types: [soundmind-error]
+
+  # 수동 실행 (테스트·디버그용)
+  workflow_dispatch:
+    inputs:
+      error_log_id:
+        description: 'Supabase error_logs row UUID'
+        required: false
+        default: ''
+      dry_run:
+        description: '패치 적용 없이 분석만 (true/false)'
+        required: false
+        default: 'false'
+
+# ── 동시 실행 방지 ────────────────────────────────────────────────────────
+concurrency:
+  group: self-healing
+  cancel-in-progress: false
+
+jobs:
+  heal:
+    name: Analyze → Patch → Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── 1. 소스 체크아웃 ──────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      # ── 2. Node.js 설정 ───────────────────────────────────────────────
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── 3. 의존성 설치 ────────────────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 4. 환경변수 디버그 (키 노출 없이) ────────────────────────────
+      - name: Verify secrets
+        run: |
+          echo "ANTHROPIC_API_KEY set: ${{ secrets.ANTHROPIC_API_KEY != '' }}"
+          echo "SUPABASE_URL set: ${{ secrets.SUPABASE_URL != '' }}"
+          echo "SUPABASE_SERVICE_KEY set: ${{ secrets.SUPABASE_SERVICE_KEY != '' }}"
+          echo "Error Log ID: ${{ github.event.client_payload.error_log_id || inputs.error_log_id || 'N/A' }}"
+
+      # ── 5. 자가 치유 하네스 실행 ──────────────────────────────────────
+      - name: Run Self-Healing Harness
+        id: healer
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ERROR_LOG_ID: >-
+            ${{ github.event.client_payload.error_log_id
+                || inputs.error_log_id
+                || '' }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/heal.mjs
+
+      # ── 6. 패치 커밋 & 푸시 (변경사항 있을 때만) ─────────────────────
+      - name: Commit and push patch
+        if: steps.healer.outputs.patched == 'true'
+        run: |
+          git config user.email "healer@soundmind.ai"
+          git config user.name  "SoundMind Auto-Healer"
+          git add -A
+          git diff --staged --quiet && echo "No changes to commit" || \
+            git commit -m "auto-patch: ${{ steps.healer.outputs.patch_summary }} [skip ci]"
+          git push origin HEAD
+
+      # ── 7. 실패 시 Supabase 상태 업데이트 ────────────────────────────
+      - name: Mark as failed on error
+        if: failure()
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ERROR_LOG_ID: >-
+            ${{ github.event.client_payload.error_log_id
+                || inputs.error_log_id
+                || '' }}
+        run: node scripts/mark-failed.mjs

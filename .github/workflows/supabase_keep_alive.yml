@@ -1,0 +1,42 @@
+name: Supabase Keep-Alive (Prevent Pausing)
+
+on:
+  schedule:
+    - cron: '0 0 * * 1,4' # 매주 월요일, 목요일 자정(UTC)에 자동으로 실행 (3~4일 간격)
+  workflow_dispatch: # 개발자가 수동으로 버튼을 눌러 실행할 수도 있게 허용
+
+jobs:
+  ping_db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Supabase Client
+        run: npm install @supabase/supabase-js
+
+      - name: Ping Database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+          async function ping() {
+            // 가장 가벼운 쿼리로 DB를 깨워둡니다.
+            const { data, error } = await supabase.from('error_logs').select('id').limit(1);
+            if (error) {
+              console.error('Ping failed:', error);
+              process.exit(1);
+            }
+            console.log('Supabase successfully pinged! Keeping it alive.');
+          }
+          ping();
+          "

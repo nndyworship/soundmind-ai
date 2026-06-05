@@ -1,0 +1,634 @@
+{
+  "_version": "1.0",
+  "_ref": "AES, Bob Katz 'Mastering Audio', Mike Senior 'Mixing Secrets' 기반 실무 수치",
+  "instruments": [
+    {
+      "id": "kick",
+      "name": "킥 드럼",
+      "emoji": "🥁",
+      "color": "#ff3b30",
+      "character": "percussive",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          20
+        ],
+        "bodyPhaseMs": [
+          20,
+          200
+        ],
+        "tailPhaseMs": [
+          200,
+          600
+        ],
+        "peakCrestFactor_dB": 18,
+        "description": "킥은 비더(Beater)가 헤드를 타격하는 0~20ms 초기 트랜지언트와 50~200ms에 걸친 바디(Body)로 나뉜다. 초기 트랜지언트는 '클릭감'과 '명료도'를 결정하고, 바디는 '묵직함'과 '펀치'를 담당한다."
+      },
+      "presets": {
+        "transparent": {
+          "label": "투명 (Transient 보존)",
+          "ratio": 3,
+          "attackMs": 25,
+          "releaseMs": 250,
+          "thresholdDBFS": -18,
+          "kneeDB": 4,
+          "makeupDB": 3,
+          "GR_dB": [
+            3,
+            5
+          ],
+          "topology": "VCA",
+          "transientNote": "어택 25ms → 비더 클릭(0~20ms) 완전 통과. 컴프가 바디 이후부터 작동. 클릭감 100% 보존. 교회 예배 킥에 최적.",
+          "ruleOfThumb": "어택이 빠를수록 클릭 소멸. 25ms 이하로 내리지 말 것."
+        },
+        "punchy": {
+          "label": "펀치 (Pump 효과)",
+          "ratio": 5,
+          "attackMs": 10,
+          "releaseMs": 120,
+          "thresholdDBFS": -20,
+          "kneeDB": 2,
+          "makeupDB": 5,
+          "GR_dB": [
+            5,
+            8
+          ],
+          "topology": "VCA",
+          "transientNote": "어택 10ms → 클릭 일부 압축, 바디 상승 → '펑' 소리 강조. 릴리즈 120ms로 다음 비트 전 GR 완전 복귀. 라이브 콘서트 킥 전형적 세팅.",
+          "ruleOfThumb": "릴리즈가 BPM 절반 이하여야 펌핑 없음. 120BPM → 릴리즈 250ms 이내."
+        },
+        "parallel": {
+          "label": "패러렐 (뉴욕 컴프)",
+          "ratio": 10,
+          "attackMs": 5,
+          "releaseMs": 80,
+          "thresholdDBFS": -24,
+          "kneeDB": 0,
+          "makeupDB": 8,
+          "GR_dB": [
+            10,
+            15
+          ],
+          "topology": "VCA",
+          "blend": 40,
+          "transientNote": "극단 압축(10:1) 후 원본 40% 블렌드. 어택 5ms로 GR 10~15dB. 원본 트랜지언트 + 컴프 서스테인 동시 확보. 단독 사용 금지.",
+          "ruleOfThumb": "Dry 비율을 높이면 트랜지언트 회복, 낮추면 서스테인 강조."
+        }
+      },
+      "faderDefault": 0,
+      "freqZones": [
+        {
+          "label": "Sub",
+          "hz": 60,
+          "role": "펀치·물리 체감"
+        },
+        {
+          "label": "Body",
+          "hz": 120,
+          "role": "킥 공명·웜스"
+        },
+        {
+          "label": "Mud",
+          "hz": 250,
+          "role": "탁함 구간 (컷)"
+        },
+        {
+          "label": "Click",
+          "hz": 3000,
+          "role": "비더 어택 명료도"
+        }
+      ]
+    },
+    {
+      "id": "snare",
+      "name": "스네어",
+      "emoji": "🥁",
+      "color": "#ffb300",
+      "character": "percussive",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          8
+        ],
+        "bodyPhaseMs": [
+          8,
+          80
+        ],
+        "tailPhaseMs": [
+          80,
+          300
+        ],
+        "peakCrestFactor_dB": 20,
+        "description": "스네어 크랙은 0~8ms의 극초기 임팩트. 이후 스네어 와이어 공명이 80~300ms 지속. 크랙 보존이 핵심이며 어택 5ms 이하 설정 시 크랙이 완전히 압축되어 '납작한' 스네어가 된다."
+      },
+      "presets": {
+        "crack": {
+          "label": "크랙 강조",
+          "ratio": 4,
+          "attackMs": 8,
+          "releaseMs": 100,
+          "thresholdDBFS": -18,
+          "kneeDB": 2,
+          "makeupDB": 4,
+          "GR_dB": [
+            4,
+            6
+          ],
+          "topology": "VCA",
+          "transientNote": "어택 8ms → 0~8ms 크랙 통과, 바디부터 압축. 릴리즈 100ms → 스네어 링(Ring) 억제. GR 4~6dB로 다이나믹 안정화.",
+          "ruleOfThumb": "어택 5ms 이하 금지. 크랙 소멸 확인 시 어택 늘릴 것."
+        },
+        "fat": {
+          "label": "두꺼운 스네어",
+          "ratio": 6,
+          "attackMs": 3,
+          "releaseMs": 150,
+          "thresholdDBFS": -22,
+          "kneeDB": 3,
+          "makeupDB": 6,
+          "GR_dB": [
+            5,
+            8
+          ],
+          "topology": "Optical",
+          "transientNote": "어택 3ms → 크랙 일부 압축 후 바디 서스테인 강조. Optical 특성상 자연스럽게 감쇠. 60~70년대 Motown 스타일. 크랙보다 '뚱뚱한' 바디 우선.",
+          "ruleOfThumb": "Optical 컴프는 어택/릴리즈가 프로그램 의존적 → 설정값은 참고치."
+        },
+        "parallel": {
+          "label": "패러렐 믹스",
+          "ratio": 8,
+          "attackMs": 1,
+          "releaseMs": 60,
+          "thresholdDBFS": -26,
+          "kneeDB": 0,
+          "makeupDB": 10,
+          "GR_dB": [
+            12,
+            18
+          ],
+          "topology": "FET",
+          "blend": 35,
+          "transientNote": "1176 스타일 FET 어택 1ms 극단 압축. ALL 버튼 시뮬레이션. 원본 35% 블렌드로 트랜지언트 복원. Bonham 스네어 기반.",
+          "ruleOfThumb": "FET 어택 1ms → 크랙 완전 압축. 반드시 패러렐로만 사용."
+        }
+      },
+      "faderDefault": 0,
+      "freqZones": [
+        {
+          "label": "Body",
+          "hz": 200,
+          "role": "스네어 통 울림"
+        },
+        {
+          "label": "Crack",
+          "hz": 1000,
+          "role": "임팩트 크랙"
+        },
+        {
+          "label": "Wire",
+          "hz": 5000,
+          "role": "와이어 질감"
+        },
+        {
+          "label": "Air",
+          "hz": 9000,
+          "role": "에어 시즐"
+        }
+      ]
+    },
+    {
+      "id": "vocal",
+      "name": "리드 보컬",
+      "emoji": "🎤",
+      "color": "#0a84ff",
+      "character": "melodic",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          15
+        ],
+        "bodyPhaseMs": [
+          15,
+          200
+        ],
+        "tailPhaseMs": [
+          200,
+          800
+        ],
+        "peakCrestFactor_dB": 12,
+        "description": "보컬 트랜지언트는 자음(Consonant)에서 발생. 'P' 'B' 파열음 5~15ms, 'S' 'T' 치찰음 2~8ms, 모음(Vowel)은 슬로우 어택. 자음 질감을 보존하면서 모음 레벨을 안정화하는 것이 핵심."
+      },
+      "presets": {
+        "natural": {
+          "label": "내추럴 (장시간 청취)",
+          "ratio": 2.5,
+          "attackMs": 12,
+          "releaseMs": 80,
+          "thresholdDBFS": -22,
+          "kneeDB": 6,
+          "makeupDB": 2,
+          "GR_dB": [
+            3,
+            5
+          ],
+          "topology": "Optical",
+          "transientNote": "소프트 니 6dB + Optical → 가장 자연스러운 압축. 어택 12ms로 자음 P/B 통과. 릴리즈 80ms Auto 권장. 교회 예배 보컬 2~3시간 사용에 최적.",
+          "ruleOfThumb": "소프트 니 보컬 컴프의 GR은 3~5dB가 귀에 들리지 않는 한계."
+        },
+        "aggressive": {
+          "label": "어그레시브 (라이브)",
+          "ratio": 4,
+          "attackMs": 6,
+          "releaseMs": 50,
+          "thresholdDBFS": -24,
+          "kneeDB": 2,
+          "makeupDB": 4,
+          "GR_dB": [
+            5,
+            8
+          ],
+          "topology": "VCA",
+          "transientNote": "어택 6ms → 파열음 일부 압축, 레벨 안정화 극대화. 라이브 무대 움직임에 의한 레벨 변동 ±8dB 대응. 릴리즈 50ms로 빠른 복귀 → 펌핑 발생 가능, 믹스 레벨로 마스킹.",
+          "ruleOfThumb": "라이브 VCA 보컬 컴프는 릴리즈를 짧게 → 보컬 레벨 일정하게."
+        },
+        "de_esser": {
+          "label": "디에서 시뮬레이션",
+          "ratio": 10,
+          "attackMs": 1,
+          "releaseMs": 30,
+          "thresholdDBFS": -16,
+          "kneeDB": 0,
+          "makeupDB": 0,
+          "GR_dB": [
+            3,
+            6
+          ],
+          "topology": "Dynamic EQ",
+          "sidechain": {
+            "freq": 5500,
+            "Q": 8,
+            "type": "bandpass"
+          },
+          "transientNote": "5.5kHz 사이드체인 밴드패스 → 치찰음(S/SH) 감지 시만 작동. 어택 1ms로 치찰음 즉시 포착. 릴리즈 30ms로 빠른 복귀. 보컬 전체 다이나믹은 건드리지 않음.",
+          "ruleOfThumb": "사이드체인 주파수를 보컬 치찰음 중심(4.5~7kHz)에 맞춤 조정."
+        }
+      },
+      "faderDefault": 2,
+      "freqZones": [
+        {
+          "label": "Warmth",
+          "hz": 300,
+          "role": "목소리 온기"
+        },
+        {
+          "label": "Body",
+          "hz": 800,
+          "role": "중역 존재감"
+        },
+        {
+          "label": "Presence",
+          "hz": 3000,
+          "role": "침투력·명료도"
+        },
+        {
+          "label": "Air",
+          "hz": 12000,
+          "role": "에어·개방감"
+        }
+      ]
+    },
+    {
+      "id": "bass",
+      "name": "베이스 기타",
+      "emoji": "🎸",
+      "color": "#00ff88",
+      "character": "melodic",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          30
+        ],
+        "bodyPhaseMs": [
+          30,
+          300
+        ],
+        "tailPhaseMs": [
+          300,
+          1000
+        ],
+        "peakCrestFactor_dB": 10,
+        "description": "핑거 피킹은 10~30ms 어택. 슬랩 베이스는 0~5ms 극초기 트랜지언트. 베이스는 킥과 사이드체인 연동이 필수. 사이드체인 없으면 킥-베이스 서브 충돌로 100~200Hz 구간이 들뜬다."
+      },
+      "presets": {
+        "tight": {
+          "label": "타이트 (킥 연동)",
+          "ratio": 4,
+          "attackMs": 30,
+          "releaseMs": 150,
+          "thresholdDBFS": -16,
+          "kneeDB": 3,
+          "makeupDB": 3,
+          "GR_dB": [
+            3,
+            6
+          ],
+          "topology": "VCA",
+          "sidechain": {
+            "source": "kick",
+            "type": "external"
+          },
+          "transientNote": "어택 30ms → 핑거 어택 질감 보존. 킥 사이드체인 → 킥 타격 시 베이스 레벨 순간 감쇠(-4~6dB) → 킥-베이스 서브 충돌 해소. 가장 효과적인 저역 분리법.",
+          "ruleOfThumb": "사이드체인 GR은 -4~6dB. 과도하면 베이스가 사라짐."
+        },
+        "slap": {
+          "label": "슬랩 베이스",
+          "ratio": 3,
+          "attackMs": 5,
+          "releaseMs": 100,
+          "thresholdDBFS": -20,
+          "kneeDB": 2,
+          "makeupDB": 4,
+          "GR_dB": [
+            4,
+            7
+          ],
+          "topology": "FET",
+          "transientNote": "슬랩 어택 0~5ms → FET 빠른 어택 5ms로 포착. 썸 슬랩의 충격음이 뭉개지지 않게 GR 4~7dB 제한. 릴리즈 100ms로 팝 음 이후 빠른 복귀.",
+          "ruleOfThumb": "슬랩은 어택이 너무 빠르면 퍽 소리 소멸. 5ms가 FET 최소한."
+        },
+        "smooth": {
+          "label": "스무스 (재즈·어쿠스틱)",
+          "ratio": 2,
+          "attackMs": 50,
+          "releaseMs": 300,
+          "thresholdDBFS": -14,
+          "kneeDB": 8,
+          "makeupDB": 1,
+          "GR_dB": [
+            2,
+            4
+          ],
+          "topology": "Optical",
+          "transientNote": "소프트 니 8dB + Tube/Optical → 자연스러운 다이나믹 추적. 어택 50ms로 핑거 질감 완전 보존. 재즈·어쿠스틱 베이스의 다이나믹 표현력 유지.",
+          "ruleOfThumb": "Tube 컴프는 하모닉 새추레이션 추가 → 베이스 온기 자연 강화."
+        }
+      },
+      "faderDefault": 0,
+      "freqZones": [
+        {
+          "label": "Sub",
+          "hz": 80,
+          "role": "물리적 저역 체감"
+        },
+        {
+          "label": "Fundamental",
+          "hz": 120,
+          "role": "베이스 음정"
+        },
+        {
+          "label": "Growl",
+          "hz": 800,
+          "role": "그로울·존재감"
+        },
+        {
+          "label": "Attack",
+          "hz": 2000,
+          "role": "핑거/피크 어택"
+        }
+      ]
+    },
+    {
+      "id": "guitar",
+      "name": "일렉 기타",
+      "emoji": "🎸",
+      "color": "#bf5af2",
+      "character": "melodic",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          25
+        ],
+        "bodyPhaseMs": [
+          25,
+          400
+        ],
+        "tailPhaseMs": [
+          400,
+          2000
+        ],
+        "peakCrestFactor_dB": 8,
+        "description": "기타 피킹 트랜지언트는 10~25ms. 앰프 특성상 자연 컴프레션이 이미 내장. 클린 기타는 다이나믹 레인지 크지만, 디스토션 기타는 이미 클리핑으로 다이나믹 제한됨 → 컴프 불필요하거나 가볍게."
+      },
+      "presets": {
+        "clean": {
+          "label": "클린 기타",
+          "ratio": 2.5,
+          "attackMs": 20,
+          "releaseMs": 200,
+          "thresholdDBFS": -18,
+          "kneeDB": 4,
+          "makeupDB": 2,
+          "GR_dB": [
+            2,
+            4
+          ],
+          "topology": "Optical",
+          "transientNote": "클린 기타 다이나믹 레인지 최대 ±12dB. 어택 20ms로 피킹 질감 보존. Optical 컴프의 느린 어택 특성이 기타 자연스러운 어택 살림. GR 2~4dB로 가볍게.",
+          "ruleOfThumb": "기타는 컴프보다 EQ와 레벨 오토메이션이 더 효과적인 경우 많음."
+        },
+        "crunch": {
+          "label": "크런치/오버드라이브",
+          "ratio": 1.5,
+          "attackMs": 30,
+          "releaseMs": 300,
+          "thresholdDBFS": -12,
+          "kneeDB": 6,
+          "makeupDB": 1,
+          "GR_dB": [
+            1,
+            3
+          ],
+          "topology": "Optical",
+          "transientNote": "오버드라이브 기타는 앰프 자체가 3:1 이상 컴프레션. 추가 컴프는 1.5:1 가볍게. 어택 30ms로 피킹 어택 완전 통과. GR 1~3dB 글루(Glue) 효과만.",
+          "ruleOfThumb": "디스토션 기타에 강한 컴프 적용 시 '납작하고 생기 없는' 소리."
+        },
+        "rhythm": {
+          "label": "리듬 기타 (공간 제어)",
+          "ratio": 3,
+          "attackMs": 10,
+          "releaseMs": 150,
+          "thresholdDBFS": -20,
+          "kneeDB": 3,
+          "makeupDB": 3,
+          "GR_dB": [
+            3,
+            6
+          ],
+          "topology": "VCA",
+          "transientNote": "리듬 기타 스트럼 다이나믹 제어. 어택 10ms로 초기 스트럼 일부 압축 → 레벨 일정화. 교회 예배 리듬 기타: 보컬과 공간 다툼 방지를 위해 GR 4~6dB로 '뒤로 밀기'.",
+          "ruleOfThumb": "리듬 기타 컴프는 믹스 내 공간 확보가 목적. GR 높을수록 뒤로 물러남."
+        }
+      },
+      "faderDefault": -2,
+      "freqZones": [
+        {
+          "label": "Body",
+          "hz": 350,
+          "role": "기타 통 울림"
+        },
+        {
+          "label": "Midrange",
+          "hz": 1200,
+          "role": "캐릭터 중역"
+        },
+        {
+          "label": "Presence",
+          "hz": 3500,
+          "role": "선명도·침투력"
+        },
+        {
+          "label": "Air",
+          "hz": 8000,
+          "role": "고역 에어"
+        }
+      ]
+    },
+    {
+      "id": "keys",
+      "name": "건반/키보드",
+      "emoji": "🎹",
+      "color": "#30d158",
+      "character": "melodic",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          10
+        ],
+        "bodyPhaseMs": [
+          10,
+          500
+        ],
+        "tailPhaseMs": [
+          500,
+          3000
+        ],
+        "peakCrestFactor_dB": 14,
+        "description": "피아노 해머 타격 0~10ms 강한 어택. 오르간은 어택 없이 즉시 풀 레벨. 패드/스트링은 50~200ms 슬로우 어택. 악기 타입별로 전혀 다른 압축 접근 필요."
+      },
+      "presets": {
+        "piano": {
+          "label": "피아노 (해머 보존)",
+          "ratio": 2,
+          "attackMs": 40,
+          "releaseMs": 400,
+          "thresholdDBFS": -16,
+          "kneeDB": 6,
+          "makeupDB": 2,
+          "GR_dB": [
+            2,
+            4
+          ],
+          "topology": "Optical",
+          "transientNote": "해머 어택 0~10ms 완전 통과 → 어택 40ms로 개방. Optical 느린 응답이 피아노 자연스러운 다이나믹 추적. 릴리즈 400ms로 디케이 자연스럽게. GR 2~4dB 글루만.",
+          "ruleOfThumb": "피아노에 강한 컴프 → '뭉개지는' 해머 소리. 해머 보존이 핵심."
+        },
+        "pad": {
+          "label": "패드/스트링",
+          "ratio": 1.5,
+          "attackMs": 100,
+          "releaseMs": 480,
+          "thresholdDBFS": -12,
+          "kneeDB": 8,
+          "makeupDB": 1,
+          "GR_dB": [
+            1,
+            2
+          ],
+          "topology": "Optical",
+          "transientNote": "패드는 슬로우 어택 → 컴프 불필요에 가까움. 어택 100ms+ 소프트 니 8dB로 극히 가볍게. 목적: 피크 리미팅(1~2dB GR)만. 다이나믹 표현 손상 금지.",
+          "ruleOfThumb": "패드에는 리미터(20:1, 1~2dB GR)가 풀 컴프보다 적합."
+        },
+        "organ": {
+          "label": "오르간 레슬리",
+          "ratio": 3,
+          "attackMs": 5,
+          "releaseMs": 100,
+          "thresholdDBFS": -18,
+          "kneeDB": 2,
+          "makeupDB": 4,
+          "GR_dB": [
+            4,
+            7
+          ],
+          "topology": "FET",
+          "transientNote": "오르간 어택 없음 → 빠른 어택(5ms)이 레슬리 회전 효과의 주기적 레벨 변동 포착. FET 특성상 하모닉 새추레이션 → 오르간 빈티지 질감 강화. GR 4~7dB.",
+          "ruleOfThumb": "레슬리 시뮬 시 컴프 어택 빠르게 → 회전 속도감 강조."
+        }
+      },
+      "faderDefault": -3,
+      "freqZones": [
+        {
+          "label": "Bass",
+          "hz": 150,
+          "role": "건반 저역 (HPF 필요)"
+        },
+        {
+          "label": "Mid",
+          "hz": 600,
+          "role": "중역 온기"
+        },
+        {
+          "label": "Bright",
+          "hz": 3000,
+          "role": "피아노 명료도"
+        },
+        {
+          "label": "Shimmer",
+          "hz": 8000,
+          "role": "고역 반짝임"
+        }
+      ]
+    }
+  ],
+  "compTopologies": {
+    "VCA": {
+      "character": "빠름·정밀·투명",
+      "typicalAttackMin": 0.1,
+      "typicalAttackMax": 100,
+      "hardwareRef": "dbx 160, SSL G-Bus"
+    },
+    "FET": {
+      "character": "빠름·컬러·하모닉",
+      "typicalAttackMin": 0.02,
+      "typicalAttackMax": 30,
+      "hardwareRef": "UA 1176"
+    },
+    "Optical": {
+      "character": "느림·자연·프로그램 의존",
+      "typicalAttackMin": 5,
+      "typicalAttackMax": 200,
+      "hardwareRef": "Teletronix LA-2A"
+    },
+    "Tube": {
+      "character": "따뜻함·새추레이션",
+      "typicalAttackMin": 10,
+      "typicalAttackMax": 300,
+      "hardwareRef": "Fairchild 670"
+    },
+    "Dynamic EQ": {
+      "character": "주파수 선택·사이드체인 활용",
+      "typicalAttackMin": 1,
+      "typicalAttackMax": 50,
+      "hardwareRef": "Weiss DS1-MK3"
+    }
+  },
+  "goldenRules": [
+    "어택이 빠를수록 트랜지언트가 압축된다. 항상 어택을 열어두고 시작.",
+    "릴리즈는 BPM에 맞춰 설정: 120BPM → 릴리즈 최대 250ms (0.5박 이내).",
+    "GR 계기를 보지 말고 귀로 들어라. 계기는 참고치일 뿐.",
+    "패러렐 컴프: 극단 압축 후 Dry 블렌드 → 트랜지언트 + 서스테인 동시 확보.",
+    "Soft Knee는 자연스러운 컴프. Hard Knee는 정확한 컴프. 보컬에는 Soft Knee.",
+    "사이드체인 컴프: 킥→베이스, 킥→패드, 보컬→배경 → 공간 자동 확보.",
+    "Gain Reduction 3dB 이상이 귀에 들리기 시작한다. 3dB 이하는 글루 컴프."
+  ]
+}
