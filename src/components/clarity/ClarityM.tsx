@@ -21,6 +21,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useAudioCapture }  from '../../hooks/useAudioCapture'
+import { useSharedAudio }   from '../../hooks/useSharedAudio'
 import { useLoudnessMeter, type LoudnessMetrics } from '../../hooks/useLoudnessMeter'
 import Goniometer           from './Goniometer'
 import LevelMeter           from './LevelMeter'
@@ -97,7 +98,8 @@ export default function ClarityM() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const capture  = useAudioCapture()
-  const loudness = useLoudnessMeter(capture.state.stream)
+  const { audioCtx, srcNode } = useSharedAudio(capture.state.stream)
+  const loudness = useLoudnessMeter(audioCtx, srcNode)
 
   const containerW = useContainerWidth(containerRef)
   const effectiveW = fullscreen ? window.innerWidth : containerW
@@ -286,6 +288,8 @@ export default function ClarityM() {
             target={target}
             platform={platform}
             view={view}
+            audioCtx={audioCtx}
+            srcNode={srcNode}
             gonioSize={gonioSize}
             rtaW={rtaW}
             rtaH={rtaH}
@@ -326,7 +330,8 @@ export default function ClarityM() {
             {/* 메인 뷰 */}
             {view === 'goniometer' && (
               <GoniometerView
-                stream={capture.state.stream}
+                audioCtx={audioCtx}
+                srcNode={srcNode}
                 metrics={metrics}
                 gonioSize={gonioSize}
                 isMobile={isMobile}
@@ -348,7 +353,8 @@ export default function ClarityM() {
                   </div>
                 )}
                 <RTA
-                  stream={capture.state.stream}
+                  audioCtx={audioCtx}
+                  srcNode={srcNode}
                   width={innerW}
                   height={rtaH}
                   averaging={averaging}
@@ -403,7 +409,7 @@ export default function ClarityM() {
 
 function DesktopDashboard({
   capture, loudness, metrics, target, platform,
-  view, gonioSize, rtaW, rtaH, histW, histH,
+  view, audioCtx, srcNode, gonioSize, rtaW, rtaH, histW, histH,
   averaging, dbRange, padding, setPlatformId,
 }: {
   capture:         ReturnType<typeof useAudioCapture>
@@ -412,6 +418,8 @@ function DesktopDashboard({
   target:          number
   platform:        { id: string; label: string; target: number }
   view:            ViewId
+  audioCtx:        AudioContext | null
+  srcNode:         AudioNode | null
   gonioSize:       number
   rtaW:            number
   rtaH:            number
@@ -456,7 +464,7 @@ function DesktopDashboard({
           background: '#0d0d10', borderRadius: 8,
           padding: 10, border: '1px solid #2a2a30',
         }}>
-          <Goniometer stream={capture.state.stream} width={gonioSize} height={gonioSize} />
+          <Goniometer audioCtx={audioCtx} srcNode={srcNode} width={gonioSize} height={gonioSize} />
         </div>
 
         {/* 레벨 미터 + 상관계수 */}
@@ -471,7 +479,7 @@ function DesktopDashboard({
             }}>
               CORRELATION
             </div>
-            <CorrelationMeter stream={capture.state.stream} />
+            <CorrelationMeter audioCtx={audioCtx} srcNode={srcNode} />
           </div>
         </div>
 
@@ -510,7 +518,8 @@ function DesktopDashboard({
         {view === 'rta' && (
           <>
             <RTA
-              stream={capture.state.stream}
+              audioCtx={audioCtx}
+              srcNode={srcNode}
               width={rtaW}
               height={rtaH}
               averaging={averaging}
@@ -521,7 +530,8 @@ function DesktopDashboard({
         )}
         {view === 'goniometer' && (
           <GoniometerView
-            stream={capture.state.stream}
+            audioCtx={audioCtx}
+            srcNode={srcNode}
             metrics={metrics}
             gonioSize={Math.min(rtaW, 380)}
             isMobile={false}
@@ -552,9 +562,10 @@ function DesktopDashboard({
 // ── 서브 컴포넌트들 ────────────────────────────────────────────────────────────
 
 function GoniometerView({
-  stream, metrics, gonioSize, isMobile,
+  audioCtx, srcNode, metrics, gonioSize, isMobile,
 }: {
-  stream:    MediaStream | null
+  audioCtx:  AudioContext | null
+  srcNode:   AudioNode | null
   metrics:   LoudnessMetrics
   gonioSize: number
   isMobile:  boolean
@@ -566,7 +577,7 @@ function GoniometerView({
       gap:           isMobile ? 12 : 18,
       alignItems:    isMobile ? 'center' : 'flex-start',
     }}>
-      <Goniometer stream={stream} width={gonioSize} height={gonioSize} />
+      <Goniometer audioCtx={audioCtx} srcNode={srcNode} width={gonioSize} height={gonioSize} />
       <div style={{
         display:       'flex',
         flexDirection: isMobile ? 'row' : 'column',
@@ -585,7 +596,7 @@ function GoniometerView({
           }}>
             CORRELATION
           </div>
-          <CorrelationMeter stream={stream} />
+          <CorrelationMeter audioCtx={audioCtx} srcNode={srcNode} />
         </div>
       </div>
     </div>

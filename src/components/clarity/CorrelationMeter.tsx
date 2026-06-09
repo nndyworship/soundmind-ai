@@ -1,16 +1,15 @@
 /**
  * CorrelationMeter.tsx — 스테레오 위상 상관계수 미터
  *
- * Σ(L·R) / √(Σ(L²)·Σ(R²))
- * +1.0 = 완전 동위상, 0 = 무관, -1.0 = 역위상
+ * ✅ 단일 공유 AudioContext 사용 (useSharedAudio에서 전달받은 audioCtx/srcNode)
+ *    - 독립 AudioContext 생성 제거 → Chrome 다중 AudioContext 버그 해결
  *
- * ⚠ Canvas API는 CSS var() 미지원 — 모든 색상을 하드코딩
- * 비용: $0 (Web Audio API + Canvas 2D)
+ * ⚠ Canvas API는 CSS var() 미지원 — 모든 색상 하드코딩
+ * 비용: $0
  */
 
 import { useRef, useEffect, useState } from 'react'
 
-// Canvas API는 CSS var() 지원 안 함 → 하드코딩
 const C = {
   BG:      '#0d0d10',
   OK:      '#00c853',
@@ -19,82 +18,62 @@ const C = {
 } as const
 
 interface CorrelationMeterProps {
-  stream: MediaStream | null
+  audioCtx: AudioContext | null
+  srcNode:  AudioNode | null
 }
 
-export default function CorrelationMeter({ stream }: CorrelationMeterProps) {
-  const canvasRef       = useRef<HTMLCanvasElement>(null)
+export default function CorrelationMeter({ audioCtx, srcNode }: CorrelationMeterProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [corr, setCorr] = useState<number>(0)
-  const ctxRef          = useRef<AudioContext | null>(null)
-  const procRef         = useRef<ScriptProcessorNode | null>(null)
+  const procRef   = useRef<ScriptProcessorNode | null>(null)
 
   const W = 200
   const H = 36
 
   // ── 오디오 처리 ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!stream) {
+    if (!audioCtx || !srcNode) {
       setCorr(0)
       return
     }
 
-    const AudioCtx = window.AudioContext ??
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    const audioCtx = new AudioCtx()
-    ctxRef.current = audioCtx
-
     let cancelled = false
 
-    const doSetup = () => {
-      if (cancelled || audioCtx.state === 'closed') return
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const proc     = audioCtx.createScriptProcessor(2048, 2, 2)
+    procRef.current = proc
 
-      const source = audioCtx.createMediaStreamSource(stream)
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      const proc   = audioCtx.createScriptProcessor(2048, 2, 2)
-      procRef.current = proc
+    const silencer = audioCtx.createGain()
+    silencer.gain.value = 0
 
-      // gain=0 silencer: onaudioprocess 발화에 destination 연결 필요
-      const silencer = audioCtx.createGain()
-      silencer.gain.value = 0
+    proc.onaudioprocess = (ev) => {
+      if (cancelled) return
+      const L = ev.inputBuffer.getChannelData(0)
+      const R = ev.inputBuffer.numberOfChannels > 1
+        ? ev.inputBuffer.getChannelData(1)
+        : L
 
-      proc.onaudioprocess = (ev) => {
-        const L = ev.inputBuffer.getChannelData(0)
-        const R = ev.inputBuffer.numberOfChannels > 1
-          ? ev.inputBuffer.getChannelData(1)
-          : L
-
-        let sumLR = 0, sumL2 = 0, sumR2 = 0
-        for (let i = 0; i < L.length; i++) {
-          sumLR += L[i]! * R[i]!
-          sumL2 += L[i]! * L[i]!
-          sumR2 += R[i]! * R[i]!
-        }
-        const denom = Math.sqrt(sumL2 * sumR2)
-        const c = denom > 1e-10 ? Math.max(-1, Math.min(1, sumLR / denom)) : 0
-        setCorr(c)
+      let sumLR = 0, sumL2 = 0, sumR2 = 0
+      for (let i = 0; i < L.length; i++) {
+        sumLR += L[i]! * R[i]!
+        sumL2 += L[i]! * L[i]!
+        sumR2 += R[i]! * R[i]!
       }
-
-      // source → proc → silencer(gain=0) → destination
-      source.connect(proc)
-      proc.connect(silencer)
-      silencer.connect(audioCtx.destination)
+      const denom = Math.sqrt(sumL2 * sumR2)
+      setCorr(denom > 1e-10 ? Math.max(-1, Math.min(1, sumLR / denom)) : 0)
     }
 
-    // ✅ resume() 완료 후 setup — suspended 컨텍스트에서 onaudioprocess 미발화 방지
-    if (audioCtx.state === 'running') {
-      doSetup()
-    } else {
-      audioCtx.resume().then(doSetup).catch(doSetup)
-    }
+    srcNode.connect(proc)
+    proc.connect(silencer)
+    silencer.connect(audioCtx.destination)
 
     return () => {
       cancelled = true
-      try { procRef.current?.disconnect() } catch {}
-      void audioCtx.close()
-      ctxRef.current  = null
+      try { proc.disconnect() } catch {}
+      try { silencer.disconnect() } catch {}
       procRef.current = null
     }
-  }, [stream])
+  }, [audioCtx, srcNode])
 
   // ── Canvas 렌더링 ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -126,7 +105,7 @@ export default function CorrelationMeter({ stream }: CorrelationMeterProps) {
     const zeroX = 4 + barW / 2
     const corrX = 4 + ((corr + 1) / 2) * barW
 
-    // 그라디언트 (하드코딩 hex 사용 — Canvas는 CSS var() 미지원)
+    // 그라디언트
     const grad = ctx.createLinearGradient(4, 0, 4 + barW, 0)
     grad.addColorStop(0,   C.DANGER)
     grad.addColorStop(0.5, C.CAUTION)
@@ -136,19 +115,18 @@ export default function CorrelationMeter({ stream }: CorrelationMeterProps) {
     ctx.fillRect(4, 14, barW, 9)
     ctx.globalAlpha = 1
 
-    // 레벨 인디케이터 색상 (하드코딩)
+    // 레벨 인디케이터
     const color = corr >= 0.3 ? C.OK : corr >= -0.3 ? C.CAUTION : C.DANGER
-
     ctx.fillStyle = color
     if (corr >= 0) {
       ctx.fillRect(zeroX, 14, corrX - zeroX, 9)
     } else {
-      ctx.fillRect(corrX,  14, zeroX - corrX, 9)
+      ctx.fillRect(corrX, 14, zeroX - corrX, 9)
     }
 
     // 중심선
     ctx.fillStyle = 'rgba(255,255,255,0.5)'
-    ctx.fillRect(zeroX - 1, 12, 2, 13)
+    ctx.fillRect(zeroX - 1, 10, 2, 14)
 
     // 수치
     ctx.font      = 'bold 12px JetBrains Mono, monospace'

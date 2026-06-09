@@ -40,7 +40,7 @@ interface LoudnessHistoryProps {
   height?:          number
 }
 
-const DB_MIN = -36
+const DB_MIN = -60
 const DB_MAX =   0
 
 export default function LoudnessHistory({
@@ -96,7 +96,7 @@ export default function LoudnessHistory({
     // dB 그리드
     ctx.strokeStyle = C.GRID
     ctx.lineWidth   = 1
-    ;[-6, -12, -18, -24, -30].forEach(db => {
+    ;[-6, -12, -18, -24, -30, -36, -42, -48, -54, -60].forEach(db => {
       const y = dbToY(db)
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke()
       ctx.fillStyle = C.LABEL
