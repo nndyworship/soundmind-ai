@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import eqData from '../../data/eqMaskingMap.json'
 import fmData  from '../../data/fletcherMunson.json'
+import { parseGuardedText } from '../../lib/hallucinationGuard'
 
 type SpaceType = 'church' | 'concert'
 
@@ -423,6 +424,17 @@ export default function EQMaskingGuide() {
                   </div>
                   <CompGuideInline instr={activeInstrData} />
                 </div>
+
+                {/* AI 질문 패널 */}
+                <div style={{ borderTop: '1px solid #1a1a1a', padding: '12px 16px',
+                              background: '#030305' }}>
+                  <EQAskPanel
+                    instrument={activeInstrData.name}
+                    space={space}
+                    selectedBands={activeInstrData.eqGuide[space]}
+                    color={activeInstrData.color}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -477,6 +489,174 @@ function StatBadge({ label, value }: { label: string; value: string }) {
       <div style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', letterSpacing: 1 }}>{label}</div>
       <div style={{ fontSize: 14, fontFamily: 'JetBrains Mono, monospace',
                     fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
+    </div>
+  )
+}
+
+// ── EQAskPanel — EQ 인라인 AI 질문 패널 ─────────────────────────────────────
+
+interface RagResponse { expertAnswer: string }
+
+interface EQAskPanelProps {
+  instrument:    string
+  space:         SpaceType
+  selectedBands: EQBand[]
+  color:         string
+}
+
+function EQAskPanel({ instrument, space, selectedBands, color }: EQAskPanelProps) {
+  const [query,   setQuery]   = useState('')
+  const [answer,  setAnswer]  = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const buildContext = (): string => {
+    const bands = selectedBands.map(b =>
+      `${b.freq >= 1000 ? `${b.freq / 1000}kHz` : `${b.freq}Hz`} ${b.dB > 0 ? '+' : ''}${b.dB}dB Q${b.Q}`
+    ).join(', ')
+    return `[EQ Context: 악기=${instrument}, 환경=${space === 'church' ? '교회' : '콘서트홀'}, EQ설정: ${bands}]`
+  }
+
+  const send = async () => {
+    const q = query.trim()
+    if (!q || loading) return
+    setLoading(true)
+    setError(null)
+    setAnswer(null)
+
+    try {
+      const fullQuery = `${buildContext()}\n사용자 질문: ${q}`
+      const res  = await fetch('/api/rag', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ query: fullQuery }),
+      })
+      if (!res.ok) throw new Error(`서버 오류 ${res.status}`)
+      const data = await res.json() as RagResponse
+      // hallucinationGuard 통과 필수 (SPEC.md 요건)
+      const lines = parseGuardedText(data.expertAnswer ?? '')
+      setAnswer(lines.map(l => l.text).join('\n'))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'AI 응답 실패')
+    } finally {
+      setLoading(false)
+      inputRef.current?.focus()
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() }
+  }
+
+  return (
+    <div style={{
+      background:   '#0a0a0e',
+      border:       `1px solid ${color}33`,
+      borderRadius: 8,
+      overflow:     'hidden',
+      marginTop:    4,
+    }}>
+      {/* 헤더 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '10px 14px',
+        borderBottom: `1px solid ${color}22`,
+      }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+        <span style={{
+          fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+          fontWeight: 700, color, letterSpacing: 1,
+        }}>
+          AI ADVISOR
+        </span>
+        <span style={{
+          fontSize: 10, color: 'var(--text-muted)',
+          fontFamily: 'Inter, sans-serif',
+        }}>
+          현재 EQ 설정 기준으로 질문하세요
+        </span>
+      </div>
+
+      {/* 컨텍스트 미리보기 */}
+      <div style={{
+        padding: '6px 14px',
+        fontSize: 9, color: 'var(--text-muted)',
+        fontFamily: 'JetBrains Mono, monospace',
+        lineHeight: 1.6,
+        borderBottom: `1px solid ${color}11`,
+      }}>
+        {buildContext()}
+      </div>
+
+      <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <textarea
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="예: 보컬 3kHz 부스트가 하울링을 유발하는 이유는? (Enter 전송)"
+            rows={2}
+            style={{
+              flex:         1,
+              background:   '#000',
+              border:       `1px solid ${color}44`,
+              borderRadius: 6,
+              color:        'var(--text-primary)',
+              fontSize:     12,
+              fontFamily:   'Inter, sans-serif',
+              padding:      '8px 12px',
+              resize:       'none',
+              lineHeight:   1.6,
+              outline:      'none',
+            }}
+          />
+          <button
+            onClick={() => { void send() }}
+            disabled={loading || !query.trim()}
+            style={{
+              minWidth:   56, minHeight: 56,
+              background: loading ? 'transparent' : `${color}22`,
+              border:     `1px solid ${color}`,
+              borderRadius: 6,
+              color,
+              fontSize:   16,
+              cursor:     loading || !query.trim() ? 'default' : 'pointer',
+              opacity:    loading || !query.trim() ? 0.4 : 1,
+              flexShrink: 0,
+            }}
+          >
+            {loading ? '…' : '▶'}
+          </button>
+        </div>
+
+        {error && (
+          <div style={{
+            background: 'var(--accent-red-10)', border: '1px solid var(--accent-red)',
+            borderRadius: 6, padding: '8px 12px',
+            fontSize: 12, color: 'var(--accent-red)', fontFamily: 'monospace',
+          }}>
+            {error}
+          </div>
+        )}
+
+        {answer && (
+          <div style={{
+            background:   '#000',
+            border:       `1px solid ${color}22`,
+            borderRadius: 6,
+            padding:      '12px 14px',
+            fontSize:     12, color: 'var(--text-primary)',
+            fontFamily:   'Inter, system-ui, sans-serif',
+            lineHeight:   1.8,
+            whiteSpace:   'pre-wrap',
+          }}>
+            {answer}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

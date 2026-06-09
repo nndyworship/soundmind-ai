@@ -12,6 +12,39 @@
   --text-primary:  #f5f5f5;
   --text-secondary:#8a8a8a;
   --text-muted:    #3a3a3a;
+
+  /* alpha 변형 (인라인 스타일용) */
+  --accent-blue-10:  rgba(10, 132, 255, 0.10);
+  --accent-blue-20:  rgba(10, 132, 255, 0.20);
+  --accent-blue-33:  rgba(10, 132, 255, 0.33); /* 수정: 0.20→0.33 (명칭 일치) */
+  --accent-green-10: rgba(0, 255, 136, 0.10);
+  --accent-green-20: rgba(0, 255, 136, 0.20);
+  --accent-amber-10: rgba(255, 179, 0, 0.10);
+  --accent-amber-20: rgba(255, 179, 0, 0.20);
+  --accent-red-10:   rgba(255, 59, 48, 0.10);
+
+  /* ── TC Electronic Clarity M 전용 ─────────────────────────────────────────
+   * 참조: TC Electronic Clarity M 하드웨어 UI 색상 체계
+   * 배경: 순수 AMOLED 블랙보다 미세하게 밝은 심해 블랙 (#0d0d10)
+   * 신호 상태: ITU-R BS.1770 / EBU R128 표준 신호등 체계
+   *   ok      = 정상 범위 (타깃 ±3LU 이내)  → Material Green A700
+   *   caution = 주의 범위 (±3~6LU 이탈)     → Material Yellow 700
+   *   danger  = 위험 범위 (클리핑/과압축)    → Material Red A400
+   * ─────────────────────────────────────────────────────────────────────── */
+  --clarity-bg:           #0d0d10;
+  --clarity-panel:        #141418;
+  --clarity-border:       #2a2a30;
+  --clarity-ok:           #00c853; /* Material Green A700  — 정상 */
+  --clarity-caution:      #ffd600; /* Material Yellow 700  — 주의 */
+  --clarity-danger:       #ff1744; /* Material Red A400    — 위험/클리핑 */
+
+  /* alpha 변형 — Canvas overlay / 배지 배경용 */
+  --clarity-ok-10:        rgba(0, 200, 83, 0.10);
+  --clarity-ok-20:        rgba(0, 200, 83, 0.20);
+  --clarity-caution-10:   rgba(255, 214, 0, 0.10);
+  --clarity-caution-20:   rgba(255, 214, 0, 0.20);
+  --clarity-danger-10:    rgba(255, 23, 68, 0.10);
+  --clarity-danger-20:    rgba(255, 23, 68, 0.20);
 }
 
 * { box-sizing: border-box; }

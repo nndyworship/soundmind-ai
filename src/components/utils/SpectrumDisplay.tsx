@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react'
 
 interface Props {
-  spectrumData: Float32Array<ArrayBuffer> | null
+  spectrumData: Float32Array | null   // ArrayBufferLike 포함 (strict 호환)
   peakFreq: number | null
   sampleRate: number
   fftSize?: number

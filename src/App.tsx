@@ -3,16 +3,16 @@ import './index.css'
 import HowlingDetector  from './components/utils/HowlingDetector'
 import EQMaskingGuide   from './components/utils/EQMaskingGuide'
 import CompressorGuide  from './components/utils/CompressorGuide'
-import ChatPanel        from './components/chat/ChatPanel'
+import ClarityM         from './components/clarity/ClarityM'
 import LiveConsole      from './components/console/LiveConsole'
 
-type TabId = 'howling' | 'eq' | 'comp' | 'rag'
+type TabId = 'howling' | 'eq' | 'comp' | 'clarity'
 
 const TABS: { id: TabId; label: string; done: boolean }[] = [
   { id: 'howling', label: 'HOWLING',    done: true  },
   { id: 'eq',      label: 'EQ GUIDE',   done: true  },
   { id: 'comp',    label: 'COMP GUIDE', done: true  },
-  { id: 'rag',     label: 'AI SEARCH',  done: true  },
+  { id: 'clarity', label: 'CLARITY M',  done: true  },
 ]
 
 export default function App() {
@@ -59,10 +59,10 @@ export default function App() {
 
       {/* 컨텐츠 */}
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 16px' }}>
-        {tab === 'howling' && <HowlingDetector />}
-        {tab === 'eq'      && <EQMaskingGuide />}
-        {tab === 'comp'    && <CompressorGuide />}
-        {tab === 'rag'     && <ChatPanel />}
+        {tab === 'howling'  && <HowlingDetector />}
+        {tab === 'eq'       && <EQMaskingGuide />}
+        {tab === 'comp'     && <CompressorGuide />}
+        {tab === 'clarity'  && <ClarityM />}
       </div>
 
       {/* 전역 Self-Healing Console — 모든 탭에서 플로팅 표시 */}

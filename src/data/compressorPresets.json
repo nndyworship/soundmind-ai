@@ -588,6 +588,585 @@
           "role": "고역 반짝임"
         }
       ]
+    },
+    {
+      "id": "vocal_bg",
+      "name": "보컬",
+      "emoji": "🎙",
+      "color": "#30d158",
+      "character": "melodic",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          12
+        ],
+        "bodyPhaseMs": [
+          12,
+          300
+        ],
+        "tailPhaseMs": [
+          300,
+          800
+        ],
+        "peakCrestFactor_dB": 11,
+        "description": "보컬은 자음(P·B 파열음 5~15ms, S·T 치찰음 2~8ms)과 모음(슬로우 어택)으로 구성된다. 자음 질감을 살리면서 모음 레벨을 일정하게 유지하는 것이 핵심. 감정 다이나믹을 죽이지 않는 컴프가 필요하다."
+      },
+      "presets": {
+        "natural": {
+          "label": "내추럴 (예배·클래식)",
+          "ratio": 2.5,
+          "attackMs": 12,
+          "releaseMs": 80,
+          "thresholdDBFS": -22,
+          "kneeDB": 6,
+          "makeupDB": 2,
+          "GR_dB": [
+            2,
+            4
+          ],
+          "topology": "Optical",
+          "transientNote": "어택 12ms → P/B 파열음 완전 통과. Optical 특유의 자연스러운 곡선 압축. GR 2~4dB로 귀에 들리지 않는 글루 효과. 교회 예배·찬양팀 보컬에 최적.",
+          "ruleOfThumb": "GR 3dB 이상 귀에 들리기 시작한다. 예배 보컬은 3dB 이내로 유지."
+        },
+        "live_control": {
+          "label": "라이브 레벨 컨트롤",
+          "ratio": 4,
+          "attackMs": 6,
+          "releaseMs": 60,
+          "thresholdDBFS": -24,
+          "kneeDB": 3,
+          "makeupDB": 4,
+          "GR_dB": [
+            4,
+            8
+          ],
+          "topology": "VCA",
+          "transientNote": "VCA 4:1로 무대 움직임에 의한 레벨 변동 ±8dB 대응. 어택 6ms로 파열음 일부 잡음. 릴리즈 60ms는 짧아 펌핑 주의 — 80ms 이상 권장.",
+          "ruleOfThumb": "라이브 보컬 VCA 컴프는 릴리즈를 짧게 잡으면 펌핑 발생. 70ms 이상 유지."
+        },
+        "de_ess": {
+          "label": "치찰음 억제 (De-ess)",
+          "ratio": 8,
+          "attackMs": 1,
+          "releaseMs": 25,
+          "thresholdDBFS": -16,
+          "kneeDB": 0,
+          "makeupDB": 0,
+          "GR_dB": [
+            3,
+            6
+          ],
+          "topology": "Dynamic EQ",
+          "transientNote": "5~7kHz 사이드체인 밴드패스 → S·SH 치찰음만 감지해 작동. 어택 1ms로 즉시 포착. 전체 다이나믹에 영향 없음. 콘덴서 마이크 사용 시 필수.",
+          "ruleOfThumb": "사이드체인 주파수를 5.5kHz로 시작해 귀로 확인하며 조정."
+        }
+      },
+      "faderDefault": 2,
+      "freqZones": [
+        {
+          "label": "웜스",
+          "hz": 200,
+          "role": "바디 따뜻함·탁함 구간"
+        },
+        {
+          "label": "존재감",
+          "hz": 3000,
+          "role": "자음 명료도·앞에 나옴"
+        },
+        {
+          "label": "치찰음",
+          "hz": 6000,
+          "role": "S/SH 치찰음 (De-ess 대상)"
+        },
+        {
+          "label": "에어",
+          "hz": 12000,
+          "role": "투명감·공기감"
+        }
+      ]
+    },
+    {
+      "id": "acoustic",
+      "name": "어쿠스틱 기타",
+      "emoji": "🎸",
+      "color": "#ffd60a",
+      "character": "percussive-melodic",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          10
+        ],
+        "bodyPhaseMs": [
+          10,
+          250
+        ],
+        "tailPhaseMs": [
+          250,
+          700
+        ],
+        "peakCrestFactor_dB": 14,
+        "description": "피크와 스트럼의 초기 어택(0~10ms)이 곡의 리듬감을 결정한다. 너무 빠른 어택은 픽 어택을 죽여 '죽은 소리'가 난다. 손가락 연주(Fingerpicking)와 픽 연주(Pick)의 어택 특성이 다르므로 프리셋 구분이 필요하다."
+      },
+      "presets": {
+        "pick": {
+          "label": "픽 연주 (팝·CCM)",
+          "ratio": 3,
+          "attackMs": 15,
+          "releaseMs": 150,
+          "thresholdDBFS": -20,
+          "kneeDB": 4,
+          "makeupDB": 3,
+          "GR_dB": [
+            3,
+            5
+          ],
+          "topology": "FET",
+          "transientNote": "어택 15ms → 픽 어택(0~10ms) 완전 통과 후 압축 시작. FET 특유의 약간의 새추레이션이 어쿠스틱 기타 바디감 강화. GR 3~5dB가 청감상 자연스러운 한계.",
+          "ruleOfThumb": "어택 10ms 이하로 내리면 픽 어택 소멸 → 소리가 납작해진다."
+        },
+        "fingerpick": {
+          "label": "핑거피킹 (잔잔한)",
+          "ratio": 2,
+          "attackMs": 25,
+          "releaseMs": 200,
+          "thresholdDBFS": -18,
+          "kneeDB": 8,
+          "makeupDB": 2,
+          "GR_dB": [
+            2,
+            3
+          ],
+          "topology": "Optical",
+          "transientNote": "Optical + Soft Knee 8dB로 극도로 자연스러운 압축. 어택 25ms로 핑거 터치 뉘앙스 100% 보존. GR 2~3dB는 청감상 들리지 않는 범위 — 다이나믹 글루 역할.",
+          "ruleOfThumb": "핑거피킹에는 Optical이 최선. 릴리즈를 충분히 길게(150ms+) 잡아야 자연스럽다."
+        },
+        "strumming": {
+          "label": "스트러밍 (에너지 컨트롤)",
+          "ratio": 4,
+          "attackMs": 8,
+          "releaseMs": 120,
+          "thresholdDBFS": -22,
+          "kneeDB": 2,
+          "makeupDB": 4,
+          "GR_dB": [
+            4,
+            7
+          ],
+          "topology": "VCA",
+          "transientNote": "스트럼 에너지가 강해 GR 4~7dB 필요. 어택 8ms로 초기 어택 약간 억제 → 코드 밸런스 개선. 릴리즈 120ms로 빠른 복귀. 라이브 밴드 믹스 블렌딩에 최적.",
+          "ruleOfThumb": "스트러밍 컴프는 어택을 너무 빠르게 하면 기타 소리가 '탁'해진다. 8~15ms 유지."
+        }
+      },
+      "faderDefault": 0,
+      "freqZones": [
+        {
+          "label": "바디",
+          "hz": 180,
+          "role": "울림통 공명·웜스"
+        },
+        {
+          "label": "픽 어택",
+          "hz": 800,
+          "role": "픽 어택 명료도·엣지"
+        },
+        {
+          "label": "존재감",
+          "hz": 2500,
+          "role": "앞에 나오는 느낌"
+        },
+        {
+          "label": "에어",
+          "hz": 10000,
+          "role": "현 광택·투명감"
+        }
+      ]
+    },
+    {
+      "id": "keyboard",
+      "name": "메인 건반",
+      "emoji": "🎹",
+      "color": "#64d2ff",
+      "character": "wide-dynamic",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          20
+        ],
+        "bodyPhaseMs": [
+          20,
+          500
+        ],
+        "tailPhaseMs": [
+          500,
+          1500
+        ],
+        "peakCrestFactor_dB": 16,
+        "description": "피아노·그랜드 피아노는 최대 다이나믹 레인지(pp~ff) 약 40dB를 가진다. 초기 해머 어택(0~20ms)이 '피아노 소리'의 정체성을 결정한다. 어택을 죽이면 신디사이저처럼 들린다. 서스테인과 릴리즈가 길어 컴프 릴리즈 설정이 매우 중요하다."
+      },
+      "presets": {
+        "classical": {
+          "label": "클래식·찬양 (투명)",
+          "ratio": 2,
+          "attackMs": 20,
+          "releaseMs": 300,
+          "thresholdDBFS": -18,
+          "kneeDB": 8,
+          "makeupDB": 1,
+          "GR_dB": [
+            2,
+            4
+          ],
+          "topology": "Optical",
+          "transientNote": "Optical + Soft Knee 8dB로 다이나믹 표현 최대 보존. GR 2~4dB는 청중이 인지하지 못하는 레벨. 릴리즈 300ms로 서스테인 페달 동안 GR 완전 복귀. 교회 예배 건반에 표준 세팅.",
+          "ruleOfThumb": "클래식 피아노에 강한 컴프는 금물. 2:1에서 시작해 GR 3dB 이내로 유지."
+        },
+        "pop_band": {
+          "label": "팝·밴드 (레벨 일정)",
+          "ratio": 3,
+          "attackMs": 12,
+          "releaseMs": 150,
+          "thresholdDBFS": -22,
+          "kneeDB": 4,
+          "makeupDB": 3,
+          "GR_dB": [
+            3,
+            6
+          ],
+          "topology": "VCA",
+          "transientNote": "밴드 믹스에서 건반이 묻히지 않도록 레벨 컨트롤. VCA 3:1로 pp 연주 시 레벨 끌어올림. 어택 12ms로 해머 어택 보존. 릴리즈 150ms로 스타카토 연주 시 펌핑 방지.",
+          "ruleOfThumb": "릴리즈가 짧으면 빠른 아르페지오에서 펌핑 발생. 곡 BPM에 맞춰 설정."
+        },
+        "parallel_glue": {
+          "label": "패러렐 글루 (두꺼운 사운드)",
+          "ratio": 6,
+          "attackMs": 5,
+          "releaseMs": 80,
+          "thresholdDBFS": -26,
+          "kneeDB": 2,
+          "makeupDB": 6,
+          "GR_dB": [
+            8,
+            12
+          ],
+          "topology": "FET",
+          "blend": 35,
+          "transientNote": "FET 강압축 후 Dry 65% 블렌드. 원본 해머 어택 + 압축된 서스테인 동시 확보. 전자음악·CCM 빅사운드 건반에 적합. 단독 사용 시 피아노 느낌 완전 소멸.",
+          "ruleOfThumb": "패러렐 블렌드는 30~40%에서 시작. 귀로 들으며 조정."
+        }
+      },
+      "faderDefault": 0,
+      "freqZones": [
+        {
+          "label": "저음부",
+          "hz": 100,
+          "role": "베이스 음역 겹침 주의"
+        },
+        {
+          "label": "바디",
+          "hz": 400,
+          "role": "음의 두께·온기"
+        },
+        {
+          "label": "존재감",
+          "hz": 3000,
+          "role": "건반 어택·명료도"
+        },
+        {
+          "label": "광택",
+          "hz": 8000,
+          "role": "현 광택·투명감"
+        }
+      ]
+    },
+    {
+      "id": "synth",
+      "name": "신디사이저",
+      "emoji": "🎛",
+      "color": "#bf5af2",
+      "character": "sustained",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          5
+        ],
+        "bodyPhaseMs": [
+          5,
+          800
+        ],
+        "tailPhaseMs": [
+          800,
+          2000
+        ],
+        "peakCrestFactor_dB": 8,
+        "description": "신디사이저는 패치에 따라 트랜지언트 특성이 극단적으로 다르다. 리드(Lead)는 강한 어택, 패드(Pad)는 어택 거의 없음, 베이스(Bass)는 서브 주파수가 지배적이다. 크레스트 팩터가 낮아 컴프에 덜 반응하지만 피크 제어가 중요하다."
+      },
+      "presets": {
+        "lead": {
+          "label": "리드 신스 (선명한 어택)",
+          "ratio": 3,
+          "attackMs": 8,
+          "releaseMs": 100,
+          "thresholdDBFS": -18,
+          "kneeDB": 3,
+          "makeupDB": 3,
+          "GR_dB": [
+            3,
+            5
+          ],
+          "topology": "VCA",
+          "transientNote": "어택 8ms로 신스 어택 펄스 보존. VCA 3:1로 레벨 일정하게 제어. 릴리즈 100ms로 빠른 패시지에서 펌핑 없음. 믹스 내 선명도 유지.",
+          "ruleOfThumb": "신스 리드는 어택을 너무 빠르게 하면 어택 펄스 소멸 → 부드럽고 묻히는 소리."
+        },
+        "pad": {
+          "label": "패드 (부드러운 질감)",
+          "ratio": 2,
+          "attackMs": 40,
+          "releaseMs": 400,
+          "thresholdDBFS": -16,
+          "kneeDB": 10,
+          "makeupDB": 2,
+          "GR_dB": [
+            1,
+            3
+          ],
+          "topology": "Optical",
+          "transientNote": "패드는 어택이 거의 없어 컴프 작동량이 매우 적다. Optical Soft Knee로 볼륨 피크만 살짝 제어. 릴리즈 400ms로 긴 서스테인 중 GR이 떠있지 않도록 주의.",
+          "ruleOfThumb": "패드 신스에 강한 컴프는 불필요. GR 1~2dB면 충분. 리미터 위주 사용 권장."
+        },
+        "bass_synth": {
+          "label": "베이스 신스 (타이트)",
+          "ratio": 5,
+          "attackMs": 3,
+          "releaseMs": 60,
+          "thresholdDBFS": -24,
+          "kneeDB": 1,
+          "makeupDB": 5,
+          "GR_dB": [
+            5,
+            8
+          ],
+          "topology": "VCA",
+          "transientNote": "서브 베이스 주파수 피크 제어. 어택 3ms로 초기 펄스 빠르게 잡기. Hard Knee 1dB로 정밀 제어. 릴리즈 60ms로 빠른 복귀 — 그루브 유지. 하이패스 후 컴프 적용 권장.",
+          "ruleOfThumb": "베이스 신스 컴프 전 하이패스(20~30Hz) 필수. 서브 주파수가 컴프를 오작동시킨다."
+        }
+      },
+      "faderDefault": 0,
+      "freqZones": [
+        {
+          "label": "서브",
+          "hz": 40,
+          "role": "저음 에너지 (하이패스 필수)"
+        },
+        {
+          "label": "바디",
+          "hz": 250,
+          "role": "신스 두께·온기"
+        },
+        {
+          "label": "하모닉스",
+          "hz": 2000,
+          "role": "음색 개성·텍스처"
+        },
+        {
+          "label": "브릴리언스",
+          "hz": 8000,
+          "role": "신스 광택·존재감"
+        }
+      ]
+    },
+    {
+      "id": "drum_oh",
+      "name": "드럼 (오버헤드)",
+      "emoji": "🥁",
+      "color": "#ff9f0a",
+      "character": "room-air",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          8
+        ],
+        "bodyPhaseMs": [
+          8,
+          200
+        ],
+        "tailPhaseMs": [
+          200,
+          600
+        ],
+        "peakCrestFactor_dB": 20,
+        "description": "오버헤드는 심벌·하이햇·스네어 어택이 동시에 들어오는 복합 신호다. 크레스트 팩터 20dB로 다이나믹이 매우 넓다. 피크를 잡으면서 드럼 룸감을 살리는 것이 목표. 어택을 잘못 잡으면 심벌 소리가 두꺼워지거나 납작해진다."
+      },
+      "presets": {
+        "glue": {
+          "label": "글루 (드럼 키트 통일감)",
+          "ratio": 2,
+          "attackMs": 20,
+          "releaseMs": 200,
+          "thresholdDBFS": -20,
+          "kneeDB": 6,
+          "makeupDB": 2,
+          "GR_dB": [
+            2,
+            4
+          ],
+          "topology": "VCA",
+          "transientNote": "어택 20ms → 스네어·심벌 초기 트랜지언트 통과. Soft Knee로 자연스러운 글루. GR 2~4dB는 드럼 세트 전체를 하나로 묶는 '접착제' 역할. 오버헤드 표준 세팅.",
+          "ruleOfThumb": "오버헤드 컴프는 항상 어택을 길게(15ms 이상). 심벌 어택을 죽이면 드럼이 죽는다."
+        },
+        "punchy": {
+          "label": "펀치 (라이브 에너지)",
+          "ratio": 4,
+          "attackMs": 10,
+          "releaseMs": 100,
+          "thresholdDBFS": -22,
+          "kneeDB": 3,
+          "makeupDB": 4,
+          "GR_dB": [
+            4,
+            7
+          ],
+          "topology": "FET",
+          "transientNote": "FET 특유의 앞에 치고 나오는 펀치감. 어택 10ms로 심벌 초기 어택 살짝 억제 — 스네어 바디감 강화. 릴리즈 100ms로 빠른 복귀. 록·CCM 라이브에 적합.",
+          "ruleOfThumb": "FET 오버헤드는 '꽉 찬' 느낌이 장점. 과도하면 심벌이 '스매시'되어 명료도 저하."
+        },
+        "room": {
+          "label": "룸감 강조",
+          "ratio": 6,
+          "attackMs": 30,
+          "releaseMs": 300,
+          "thresholdDBFS": -18,
+          "kneeDB": 4,
+          "makeupDB": 5,
+          "GR_dB": [
+            5,
+            10
+          ],
+          "topology": "Optical",
+          "blend": 50,
+          "transientNote": "어택 30ms + 패러렐 50% 블렌드 → 어쿠스틱 룸 에너지 극대화. Optical의 느린 반응이 룸 테일 강조. 스튜디오 드럼 레코딩 또는 교회 큰 공간 드럼에 적합.",
+          "ruleOfThumb": "Dry/Wet 50:50에서 시작. 룸감이 너무 많으면 믹스가 흐려진다."
+        }
+      },
+      "faderDefault": -3,
+      "freqZones": [
+        {
+          "label": "스네어 바디",
+          "hz": 200,
+          "role": "스네어 두께·파워"
+        },
+        {
+          "label": "심벌 어택",
+          "hz": 1500,
+          "role": "심벌 명료도·밝기"
+        },
+        {
+          "label": "에어",
+          "hz": 8000,
+          "role": "심벌 광택·공기감"
+        },
+        {
+          "label": "초고역",
+          "hz": 14000,
+          "role": "드럼 투명감"
+        }
+      ]
+    },
+    {
+      "id": "edrum",
+      "name": "전자드럼",
+      "emoji": "🎚",
+      "color": "#ff6b6b",
+      "character": "electronic-percussive",
+      "transientProfile": {
+        "attackPhaseMs": [
+          0,
+          3
+        ],
+        "bodyPhaseMs": [
+          3,
+          80
+        ],
+        "tailPhaseMs": [
+          80,
+          300
+        ],
+        "peakCrestFactor_dB": 15,
+        "description": "전자드럼은 트리거 신호가 일정해 어쿠스틱 드럼보다 트랜지언트가 균일하다. 단, 샘플 레이어 간 레벨 차이, 베로시티 레이어 전환 시 클리핑, 스테레오 출력의 좌우 레벨 불균형이 주요 문제다. Roland·Yamaha·Alesis e드럼 별로 출력 특성이 다르다."
+      },
+      "presets": {
+        "live_tight": {
+          "label": "라이브 타이트 (팝·CCM)",
+          "ratio": 4,
+          "attackMs": 2,
+          "releaseMs": 50,
+          "thresholdDBFS": -20,
+          "kneeDB": 1,
+          "makeupDB": 4,
+          "GR_dB": [
+            3,
+            6
+          ],
+          "topology": "VCA",
+          "transientNote": "어택 2ms로 트리거 펄스 즉시 제어. Hard Knee로 정밀한 피크 컨트롤. 릴리즈 50ms는 빠른 드럼 패시지에 적합. 베로시티 레이어 전환 시 레벨 점프 문제 해결.",
+          "ruleOfThumb": "전자드럼 라이브 컴프 후 리미터(-3dBFS)를 반드시 추가. 트리거 노이즈가 클리핑을 유발한다."
+        },
+        "parallel_punch": {
+          "label": "패러렐 펀치 (라이브 에너지)",
+          "ratio": 8,
+          "attackMs": 1,
+          "releaseMs": 40,
+          "thresholdDBFS": -24,
+          "kneeDB": 0,
+          "makeupDB": 7,
+          "GR_dB": [
+            8,
+            14
+          ],
+          "topology": "VCA",
+          "blend": 45,
+          "transientNote": "극단 압축 8:1 후 Dry 55% 블렌드. 트리거 어택의 물리적 펀치감 + 컴프 서스테인 동시 확보. 전자드럼이 어쿠스틱처럼 들리는 핵심 기법.",
+          "ruleOfThumb": "전자드럼 패러렐 컴프: Dry 50~60% 유지. 너무 Wet이면 트리거 펄스만 들린다."
+        },
+        "fix_velocity": {
+          "label": "베로시티 균일화",
+          "ratio": 6,
+          "attackMs": 1,
+          "releaseMs": 30,
+          "thresholdDBFS": -14,
+          "kneeDB": 0,
+          "makeupDB": 5,
+          "GR_dB": [
+            4,
+            10
+          ],
+          "topology": "VCA",
+          "transientNote": "낮은 스레숄드(-14dBFS) + 높은 비율(6:1)로 베로시티 레이어 간 레벨 차이를 강제 균일화. 하드 히트와 소프트 히트의 레벨 차이를 6dB 이내로 제한. 연주자 다이나믹 편차 보정.",
+          "ruleOfThumb": "스레숄드를 낮출수록 레벨이 고르지만 자연스러움이 줄어든다. GR 8dB가 한계."
+        }
+      },
+      "faderDefault": -2,
+      "freqZones": [
+        {
+          "label": "서브 킥",
+          "hz": 60,
+          "role": "킥 서브 에너지"
+        },
+        {
+          "label": "스네어 크랙",
+          "hz": 250,
+          "role": "스네어 펀치·바디"
+        },
+        {
+          "label": "트리거 어택",
+          "hz": 3000,
+          "role": "트리거 명료도·클릭감"
+        },
+        {
+          "label": "심벌 에어",
+          "hz": 10000,
+          "role": "심벌 광택 (전자 심벌 주의)"
+        }
+      ]
     }
   ],
   "compTopologies": {

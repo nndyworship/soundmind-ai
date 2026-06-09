@@ -9,7 +9,7 @@ const OFFICIAL_DOMAINS = [
   'soundcraft.com',
   'roland.com','boss.info',
   'presonus.com',
-  'avid.com','avid.com/pro-tools',
+  'avid.com',
   'digico.biz',
   'mackie.com',
   'dbxpro.com',
@@ -19,32 +19,162 @@ const OFFICIAL_DOMAINS = [
   'jblpro.com','jbl.com',
   'sennheiser.com',
   'audio-technica.com',
+  'wisycom.com',
+  'lectrosonics.com',
+  'danteaudio.com',
+  'audinate.com',
+  'l-acoustics.com',
+  'dbaudio.com',
 ]
 
 const COMMUNITY_DOMAINS = [
   'prosoundweb.com',
   'gearspace.com',
-  'reddit.com/r/livesound',
-  'reddit.com/r/audioengineering',
-  'reddit.com/r/audio',
+  'reddit.com',
   'gearslutz.com',
   'mixonline.com',
   'soundonsound.com',
   'vi-control.net',
   'kvraudio.com',
   'sweetwater.com',
+  'bhphotovideo.com',
   'musiciansfriend.com',
-  'guitarworld.com',
+  'guitarcenter.com',
+  'thomann.de',
+  'zzounds.com',
 ]
 
 type TrackResult = {
-  label: string
-  sources: Array<{ url: string; title: string; domain: string; snippet: string }>
-  answer: string
+  label:    string
+  sources:  Array<{ url: string; title: string; domain: string; snippet: string }>
+  answer:   string
   verified: boolean
 }
 
-// ── DuckDuckGo 비공식 HTML 검색 ──────────────────────────────────────────
+type RagResponse = {
+  query:        string
+  expertAnswer: string
+  trackA:       TrackResult
+  trackB:       TrackResult
+  meta: {
+    totalSources:     number
+    officialCount:    number
+    communityCount:   number
+    groqConfigured:   boolean
+    tavilyConfigured: boolean
+    searchQueries:    string[]
+  }
+}
+
+// ── 의도 감지 + 정밀 검색어 생성 ────────────────────────────────────────────
+type QueryIntent = 'recommend' | 'troubleshoot' | 'setup' | 'general'
+
+function detectIntent(query: string): QueryIntent {
+  if (/추천|비교|어떤.*살|구매|살만|좋은|최고|best|vs\b|versus/i.test(query)) return 'recommend'
+  if (/안됨|노이즈|하울링|buzz|hum|noise|feedback|문제|오류|고장|왜|이상|끊김/i.test(query)) return 'troubleshoot'
+  if (/설정|셋업|연결|setup|routing|patch|gain|eq|컴프|딜레이|리버브/i.test(query)) return 'setup'
+  return 'general'
+}
+
+// 한국어 쿼리 → 영어 검색어 핵심 키워드 추출
+function extractEnglishKeywords(query: string): string {
+  const brandMap: Record<string, string> = {
+    '야마하': 'Yamaha', '샤이어': 'Shure', '슈어': 'Shure',
+    '알렌히스': 'Allen Heath', '알렌앤히스': 'Allen Heath',
+    '디지코': 'DiGiCo', '큐에스씨': 'QSC', '베링거': 'Behringer',
+    '마이다스': 'Midas', '프리소너스': 'PreSonus', '맥키': 'Mackie',
+    '젠하이저': 'Sennheiser', '오디오테크니카': 'Audio-Technica',
+    '엘어쿠스틱스': 'L-Acoustics',
+    '디앤비': 'd&b audiotechnik', '단테': 'Dante',
+  }
+  const categoryMap: Record<string, string> = {
+    '디지털믹서': 'digital mixer console',
+    '디지털 믹서': 'digital mixer console',
+    '아날로그믹서': 'analog mixer console',
+    '아날로그 믹서': 'analog mixer console',
+    '무선마이크': 'wireless microphone system',
+    '무선 마이크': 'wireless microphone system',
+    '콘덴서마이크': 'condenser microphone',
+    '다이나믹마이크': 'dynamic microphone',
+    '스피커': 'PA speaker', '모니터': 'stage monitor speaker',
+    '인이어': 'in-ear monitor IEM', '이어모니터': 'in-ear monitor IEM',
+    '파워앰프': 'power amplifier', '프로세서': 'audio processor',
+    '이퀄라이저': 'equalizer EQ', '컴프레서': 'compressor',
+    '인터페이스': 'audio interface', '믹싱': 'mixing',
+    '라이브': 'live sound', '교회': 'church audio',
+    '하울링': 'feedback howling', '노이즈': 'noise',
+  }
+
+  let result = query
+  for (const [ko, en] of Object.entries(brandMap))  result = result.replace(new RegExp(ko, 'gi'), en)
+  for (const [ko, en] of Object.entries(categoryMap)) result = result.replace(new RegExp(ko, 'gi'), en)
+  return result
+}
+
+function buildSearchQueries(query: string, intent: QueryIntent): string[] {
+  const en = extractEnglishKeywords(query)
+  const year = '2024 2025 2026'
+
+  switch (intent) {
+    case 'recommend':
+      return [
+        `best ${en} ${year} review comparison`,
+        `new ${en} release ${year} features`,
+        `${en} recommendation live sound engineer ${year}`,
+      ]
+    case 'troubleshoot':
+      return [
+        `${en} troubleshooting fix solution`,
+        `${en} problem cause repair`,
+      ]
+    case 'setup':
+      return [
+        `${en} setup configuration guide`,
+        `${en} routing settings how to`,
+      ]
+    default:
+      return [`${en} audio professional`, `${en} review specifications`]
+  }
+}
+
+// ── Tavily 검색 ───────────────────────────────────────────────────────────
+async function searchTavily(
+  query: string,
+  apiKey: string,
+  depth: 'basic' | 'advanced' = 'basic'
+): Promise<Array<{ url: string; title: string; snippet: string }>> {
+  if (!apiKey) return []
+  try {
+    const res = await fetch('https://api.tavily.com/search', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key:         apiKey,
+        query,
+        search_depth:    depth,
+        max_results:     8,
+        include_answer:  false,
+        include_raw_content: false,
+      }),
+      signal: AbortSignal.timeout(9000),
+    })
+    if (!res.ok) return []
+    const data = await res.json() as {
+      results?: Array<{ url: string; title: string; content: string; score?: number }>
+    }
+    return (data.results ?? [])
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .map(r => ({
+        url:     r.url,
+        title:   r.title,
+        snippet: (r.content ?? '').slice(0, 800), // 400 → 800자: 모델명·스펙 잘림 방지
+      }))
+  } catch {
+    return []
+  }
+}
+
+// ── DuckDuckGo 폴백 ───────────────────────────────────────────────────────
 async function searchDDG(query: string): Promise<Array<{ url: string; title: string; snippet: string }>> {
   try {
     const res = await fetch(
@@ -61,69 +191,32 @@ async function searchDDG(query: string): Promise<Array<{ url: string; title: str
     )
     if (!res.ok) return []
     const html = await res.text()
-
     const results: Array<{ url: string; title: string; snippet: string }> = []
     const seen = new Set<string>()
 
-    // DDG HTML 파서 — 실제 구조: uddg= 파라미터로 실제 URL 인코딩
-    const resultBlocks = html.split('class="links_main links_deep result__body"')
-    for (let i = 1; i < resultBlocks.length && results.length < 8; i++) {
-      const block = resultBlocks[i]!
-
-      // 실제 URL: uddg= 파라미터에서 추출
-      const uddgMatch   = block.match(/uddg=([^&"]+)/)
-      // 제목: result__a 내 span 또는 텍스트
-      const titleMatch  = block.match(/class="result__a"[^>]*>(?:<[^>]+>)*([^<]+)/)
-      // 스니펫: result__snippet 이후 텍스트 노드
+    const blocks = html.split('class="links_main links_deep result__body"')
+    for (let i = 1; i < blocks.length && results.length < 6; i++) {
+      const block = blocks[i]!
+      const uddgMatch    = block.match(/uddg=([^&"]+)/)
+      const titleMatch   = block.match(/class="result__a"[^>]*>(?:<[^>]+>)*([^<]+)/)
       const snippetMatch = block.match(/class="result__snippet"[^>]*>([^<]*(?:<(?!\/a)[^>]*>[^<]*)*)/)
 
-      const rawUrl = uddgMatch?.[1] ? decodeURIComponent(uddgMatch[1]) : ''
-      const title  = titleMatch?.[1]?.trim().replace(/&amp;/g,'&').replace(/&quot;/g,'"') ?? ''
+      const rawUrl  = uddgMatch?.[1] ? decodeURIComponent(uddgMatch[1]) : ''
+      const title   = titleMatch?.[1]?.trim().replace(/&amp;/g,'&').replace(/&quot;/g,'"') ?? ''
       const snippet = (snippetMatch?.[1] ?? '')
-        .replace(/<[^>]+>/g, ' ').replace(/\s+/g,' ').trim().slice(0, 400)
+        .replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0, 800)
 
       if (!rawUrl || !title || seen.has(rawUrl)) continue
       seen.add(rawUrl)
-
-      const url = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
-      results.push({ url, title, snippet })
+      results.push({ url: rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`, title, snippet })
     }
-
     return results
   } catch {
     return []
   }
 }
 
-// ── Tavily 검색 ───────────────────────────────────────────────────────────
-async function searchTavily(query: string, apiKey: string): Promise<Array<{ url: string; title: string; snippet: string }>> {
-  if (!apiKey) return []
-  try {
-    const res = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: apiKey,
-        query,
-        search_depth: 'basic',
-        max_results: 6,
-        include_answer: false,
-      }),
-      signal: AbortSignal.timeout(10000),
-    })
-    if (!res.ok) return []
-    const data = await res.json() as { results?: Array<{ url: string; title: string; content: string }> }
-    return (data.results ?? []).map(r => ({
-      url:     r.url,
-      title:   r.title,
-      snippet: (r.content ?? '').slice(0, 400),
-    }))
-  } catch {
-    return []
-  }
-}
-
-// ── URL → 도메인 추출 ─────────────────────────────────────────────────────
+// ── URL → 도메인 ─────────────────────────────────────────────────────────
 function extractDomain(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, '') }
   catch { return url }
@@ -132,34 +225,101 @@ function extractDomain(url: string): string {
 // ── 소스 분류 ─────────────────────────────────────────────────────────────
 function classifySource(url: string): 'official' | 'community' | 'other' {
   const lc = url.toLowerCase()
-  if (OFFICIAL_DOMAINS.some(d => lc.includes(d)))   return 'official'
-  if (COMMUNITY_DOMAINS.some(d => lc.includes(d)))  return 'community'
+  if (OFFICIAL_DOMAINS.some(d => lc.includes(d)))  return 'official'
+  if (COMMUNITY_DOMAINS.some(d => lc.includes(d))) return 'community'
   return 'other'
 }
 
-// ── 장비명·증상 파싱 ─────────────────────────────────────────────────────
-function parseQuery(query: string): { deviceQuery: string; symptomQuery: string } {
-  // 알려진 브랜드 감지
-  const brands = ['yamaha','shure','qsc','allen','heath','soundcraft','roland',
-                  'presonus','avid','digico','mackie','dbx','behringer','midas',
-                  'sennheiser','audio-technica','jbl','klipsch','dante','waves']
-  const lower  = query.toLowerCase()
-  const brand  = brands.find(b => lower.includes(b)) ?? ''
+// ── 전문가 AI 답변 ────────────────────────────────────────────────────────
+async function synthesizeExpert(
+  apiKey:    string,
+  userQuery: string,
+  intent:    QueryIntent,
+  sources:   Array<{ url: string; title: string; snippet: string }>
+): Promise<string> {
+  if (!apiKey) return ''
 
-  const deviceQuery   = brand
-    ? `${brand} audio equipment manual site:${brand.replace('-','')}.com OR site:pro.${brand}.com`
-    : `${query} audio equipment manual specifications`
+  // 검색 결과를 상세하게 전달 (모델명·스펙이 잘리지 않도록)
+  const sourceBlock = sources
+    .slice(0, 8)
+    .map((s, i) => `[검색${i + 1}] ${s.title}\n출처: ${s.url}\n내용: ${s.snippet}`)
+    .join('\n\n---\n\n')
 
-  const symptomQuery = `${query} audio problem fix solution forum`
-  return { deviceQuery, symptomQuery }
+  const expertPersona = `당신은 20년 경력의 라이브 음향 엔지니어입니다.
+콘서트홀, 스타디움, 교회, 클럽 등 다양한 현장 경험과 함께
+Yamaha CL/QL/PM, DiGiCo SD/Quantum, Allen & Heath dLive/SQ/Avantis,
+Shure/Sennheiser/Wisycom 무선, L-Acoustics/d&b/QSC 스피커,
+Dante/MADI/AVB 네트워크 오디오를 깊이 다뤄왔습니다.`
+
+  const intentInstructions: Record<QueryIntent, string> = {
+    recommend: `
+장비 추천 요령:
+1. 반드시 아래 검색 결과에서 언급된 구체적인 모델명을 포함해 답변하세요.
+2. 검색 결과 기준 최신 모델(2024~2026)을 우선 추천하세요.
+3. 예산별/용도별로 1순위·2순위·예산대안 3가지를 구분해 추천하세요.
+4. 각 추천 장비의 핵심 장점 1~2줄과 주의사항을 함께 적으세요.
+5. 검색 결과에 없는 장비를 추천할 때는 "(기존 지식 기반)"이라고 표시하세요.
+6. 절대 존재하지 않는 모델명이나 스펙을 지어내지 마세요.`,
+
+    troubleshoot: `
+문제 해결 요령:
+1. 원인 → 점검 순서 → 해결 방법 순으로 설명하세요.
+2. 구체적인 설정값(dB, Hz, ms)을 제시하세요.
+3. 검색 결과에 관련 해결책이 있으면 반드시 반영하세요.
+4. 초보자가 놓치기 쉬운 함정을 한 가지 이상 포함하세요.`,
+
+    setup: `
+셋업 안내 요령:
+1. 단계별 순서로 명확하게 설명하세요.
+2. 구체적인 설정값을 포함하세요.
+3. 검색 결과의 실무 팁을 반영하세요.`,
+
+    general: `
+1. 핵심 답을 먼저 제시하고, 배경 설명을 덧붙이세요.
+2. 검색 결과의 관련 정보를 반영하세요.`,
+  }
+
+  const systemPrompt = `${expertPersona}
+
+${intentInstructions[intent]}
+
+공통 규칙:
+- 한국어로 답변하되, 장비명·기술 용어는 원어를 병기하세요.
+- 답변 길이: 3~5문단 또는 번호 목록.
+- 확신이 없으면 "현장 상황에 따라 다릅니다"라고 솔직하게 말하세요.`
+
+  const userContent = sourceBlock
+    ? `질문: ${userQuery}\n\n아래 검색 결과를 참고해 답변하세요:\n\n${sourceBlock}`
+    : `질문: ${userQuery}`
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model:       'llama-3.3-70b-versatile',
+        messages:    [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userContent },
+        ],
+        temperature: intent === 'recommend' ? 0.2 : 0.4,
+        max_tokens:  1200,
+      }),
+      signal: AbortSignal.timeout(18000),
+    })
+    if (!res.ok) return ''
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    return data.choices?.[0]?.message?.content?.trim() ?? ''
+  } catch {
+    return ''
+  }
 }
 
-// ── Groq 합성 (할루시네이션 차단 프롬프트) ─────────────────────────────
-async function synthesizeWithGroq(
-  apiKey: string,
+// ── 트랙 요약 (참고자료용) ─────────────────────────────────────────────────
+async function synthesizeTrack(
+  apiKey:    string,
   userQuery: string,
-  trackLabel: string,
-  sources: Array<{ url: string; title: string; snippet: string }>,
+  sources:   Array<{ url: string; title: string; snippet: string }>,
   trackType: 'official' | 'community'
 ): Promise<string> {
   if (!apiKey || sources.length === 0) return ''
@@ -168,58 +328,35 @@ async function synthesizeWithGroq(
     .map((s, i) => `[출처${i + 1}] ${s.title}\nURL: ${s.url}\n내용: ${s.snippet}`)
     .join('\n\n---\n\n')
 
-  const systemPrompt = trackType === 'official'
-    ? `당신은 음향 장비 전문 기술 문서 분석가입니다.
-아래 제공된 공식 문서 출처(${trackLabel})의 내용만 사용하여 답변하세요.
-규칙:
-1. 반드시 출처 URL을 "[출처N]" 형태로 인용하세요.
-2. 출처에 없는 내용은 절대 생성하지 마세요.
-3. 확인 불가 시 "해당 정보는 검색된 공식 문서에서 확인할 수 없습니다."라고만 출력하세요.
-4. 한국어로 답변하되, 기술 용어는 원어 병기하세요.
-5. 답변은 3~6문장 이내로 간결하게.`
-    : `당신은 음향 현장 엔지니어 커뮤니티 정보 분석가입니다.
-아래 커뮤니티 포럼·블로그 출처(${trackLabel})의 내용만 사용하여 실무 팁을 요약하세요.
-규칙:
-1. 반드시 출처 URL을 "[출처N]" 형태로 인용하세요.
-2. 출처에 없는 내용은 절대 생성하지 마세요.
-3. 확인 불가 시 "커뮤니티 검색 결과에서 관련 실무 팁을 찾을 수 없습니다."라고만 출력하세요.
-4. 한국어로, 현장 실무자 관점에서 요약하세요.
-5. 답변은 3~6문장 이내.`
+  const prompt = trackType === 'official'
+    ? `아래 공식 문서에서 "${userQuery}"와 관련된 핵심 스펙·설정 정보만 간략히 요약하세요. 출처 번호 인용 필수. 3문장 이내. 한국어.`
+    : `아래 커뮤니티 글에서 "${userQuery}"와 관련된 현장 팁만 간략히 요약하세요. 출처 번호 인용 필수. 3문장 이내. 한국어.`
 
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system',    content: systemPrompt },
-          { role: 'user',      content: `질문: ${userQuery}\n\n검색된 출처:\n${sourceBlock}` },
+        model:       'llama-3.3-70b-versatile',
+        messages:    [
+          { role: 'system', content: prompt },
+          { role: 'user',   content: `출처:\n${sourceBlock}` },
         ],
         temperature: 0.2,
-        max_tokens:  600,
+        max_tokens:  400,
       }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(15000),
     })
-    if (!res.ok) {
-      const err = await res.text()
-      console.error('Groq error:', err)
-      return ''
-    }
+    if (!res.ok) return ''
     const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
     return data.choices?.[0]?.message?.content?.trim() ?? ''
-  } catch (e) {
-    console.error('Groq fetch failed:', e)
+  } catch {
     return ''
   }
 }
 
 // ── 메인 핸들러 ───────────────────────────────────────────────────────────
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -229,23 +366,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { query } = req.body as { query?: string }
   if (!query?.trim()) return res.status(400).json({ error: '질문을 입력하세요.' })
 
-  const GROQ_KEY   = process.env.GROQ_API_KEY   ?? ''
-  const TAVILY_KEY = process.env.TAVILY_API_KEY  ?? ''
+  const GROQ_KEY   = process.env.GROQ_API_KEY  ?? ''
+  const TAVILY_KEY = process.env.TAVILY_API_KEY ?? ''
 
-  // ── 병렬 검색 ──────────────────────────────────────────────────────────
-  const { deviceQuery, symptomQuery } = parseQuery(query)
+  // ── 의도 감지 + 정밀 검색어 생성 ────────────────────────────────────────
+  const intent  = detectIntent(query)
+  const queries = buildSearchQueries(query, intent)
 
-  const [ddgResults, tavilyResults] = await Promise.all([
-    searchDDG(`${query} official manual documentation specifications`),
-    searchTavily(`${query} ${symptomQuery}`, TAVILY_KEY),
+  // ── 검색 3개 완전 병렬 (Vercel 30s 한도 대응) ───────────────────────────
+  const tavilyDepth = intent === 'recommend' ? 'advanced' : 'basic'
+
+  const [tavilyResults, ddgResults, extraResults] = await Promise.all([
+    searchTavily(queries[0]!, TAVILY_KEY, tavilyDepth),
+    searchDDG(queries[1] ?? queries[0]!),
+    (intent === 'recommend' && queries[2] && TAVILY_KEY)
+      ? searchTavily(queries[2], TAVILY_KEY, 'basic')
+      : Promise.resolve([]),
   ])
 
-  // ── 소스 분류 ──────────────────────────────────────────────────────────
   const allResults = [
-    ...ddgResults.map(r => ({ ...r, searchEngine: 'ddg' })),
     ...tavilyResults.map(r => ({ ...r, searchEngine: 'tavily' })),
-  ]
+    ...ddgResults.map(r => ({ ...r, searchEngine: 'ddg' })),
+    ...extraResults.map(r => ({ ...r, searchEngine: 'tavily-extra' })),
+  ].filter(r => r.snippet.trim().length > 0) // 빈 스니펫 제거
 
+  // ── 소스 분류 ────────────────────────────────────────────────────────────
   const officialSources = allResults
     .filter(r => classifySource(r.url) === 'official')
     .slice(0, 4)
@@ -256,46 +401,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .slice(0, 4)
     .map(r => ({ url: r.url, title: r.title, domain: extractDomain(r.url), snippet: r.snippet }))
 
-  // 공식 소스 부족 시: DDG official 도메인 타깃 재검색
-  if (officialSources.length === 0) {
-    const retry = await searchDDG(deviceQuery)
-    retry.forEach(r => {
-      if (classifySource(r.url) === 'official' && officialSources.length < 4) {
-        officialSources.push({ url: r.url, title: r.title, domain: extractDomain(r.url), snippet: r.snippet })
-      }
-    })
-  }
-
-  // ── Groq 병렬 합성 ─────────────────────────────────────────────────────
-  const [officialAnswer, communityAnswer] = await Promise.all([
-    synthesizeWithGroq(GROQ_KEY, query, '공식 매뉴얼', officialSources, 'official'),
-    synthesizeWithGroq(GROQ_KEY, query, '커뮤니티 실무 팁', communitySources, 'community'),
+  // ── 전문가 답변 + 트랙 합성 병렬 ────────────────────────────────────────
+  const [expertAnswer, officialAnswer, communityAnswer] = await Promise.all([
+    synthesizeExpert(GROQ_KEY, query, intent, allResults.slice(0, 8)),
+    synthesizeTrack(GROQ_KEY, query, officialSources, 'official'),
+    synthesizeTrack(GROQ_KEY, query, communitySources, 'community'),
   ])
 
-  const trackA: TrackResult = {
-    label:    '공식 매뉴얼',
-    sources:  officialSources,
-    answer:   officialAnswer  || (GROQ_KEY ? '공식 문서를 찾을 수 없습니다. 제조사 웹사이트를 직접 확인하세요.' : '[GROQ_API_KEY 미설정 — .env.local 확인]'),
-    verified: officialSources.length > 0 && officialAnswer.length > 0,
-  }
-
-  const trackB: TrackResult = {
-    label:    '커뮤니티 실무 팁',
-    sources:  communitySources,
-    answer:   communityAnswer || (GROQ_KEY ? '관련 커뮤니티 논의를 찾을 수 없습니다.' : '[GROQ_API_KEY 미설정 — .env.local 확인]'),
-    verified: communitySources.length > 0 && communityAnswer.length > 0,
-  }
-
-  return res.status(200).json({
+  const response: RagResponse = {
     query,
-    trackA,
-    trackB,
+    expertAnswer: expertAnswer || (GROQ_KEY
+      ? '답변 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+      : '[GROQ_API_KEY 미설정]'),
+    trackA: {
+      label:    '공식 매뉴얼',
+      sources:  officialSources,
+      answer:   officialAnswer,
+      verified: officialSources.length > 0 && officialAnswer.length > 0,
+    },
+    trackB: {
+      label:    '커뮤니티 실무 팁',
+      sources:  communitySources,
+      answer:   communityAnswer,
+      verified: communitySources.length > 0 && communityAnswer.length > 0,
+    },
     meta: {
-      totalSources: allResults.length,
-      officialCount: officialSources.length,
-      communityCount: communitySources.length,
-      groqConfigured: !!GROQ_KEY,
+      totalSources:     allResults.length,
+      officialCount:    officialSources.length,
+      communityCount:   communitySources.length,
+      groqConfigured:   !!GROQ_KEY,
       tavilyConfigured: !!TAVILY_KEY,
-    }
-  })
+      searchQueries:    queries,
+    },
+  }
+
+  return res.status(200).json(response)
 }

@@ -250,6 +250,234 @@
         "transientNote": "심벌 어택은 스틱 타격 0~5ms 극초기 트랜지언트 후 수백ms에 걸친 지속음. 컴프 어택 30ms+ 로 개방하여 스틱 타격감 보존. 오버헤드 마이크 특성상 페어 메이터링(M/S 또는 스테레오 링크) 권장.",
         "parallel": false
       }
+    },
+
+    {
+      "_ref": "Bob Katz 'Mastering Audio' / Yamaha Sound Reinforcement Handbook — BG Vocal",
+      "id": "vocal_bg",
+      "name": "보컬 (BG)",
+      "color": "#30d158",
+      "freqRanges": {
+        "body":     [250, 800],
+        "presence": [2000, 5000],
+        "air":      [8000, 16000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 150,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "BG보컬 저역 완전 차단. 리드보컬 저역 공간 확보." },
+          { "freq": 300,  "Q": 1.0,  "dB": -4,  "type": "cut",   "band": "Body Mud",       "reason": "리드보컬 300Hz 공간 양보. 혼탁 제거." },
+          { "freq": 1200, "Q": 2.0,  "dB": -3,  "type": "cut",   "band": "Nasal",          "reason": "코맹맹이 중역. 리드보컬 1kHz 침범 방지." },
+          { "freq": 3500, "Q": 1.4,  "dB": 2,   "type": "boost", "band": "Presence",       "reason": "BG보컬 존재감. 리드보컬 3kHz보다 살짝 높은 3.5kHz 타깃." },
+          { "freq": 10000,"Q": 0.7,  "dB": 2,   "type": "boost", "band": "Air",            "reason": "화음 에어감. 리드보컬과 고역 공유." }
+        ],
+        "concert": [
+          { "freq": 120,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "120Hz HPF — 무대 진동 차단." },
+          { "freq": 250,  "Q": 1.0,  "dB": -4,  "type": "cut",   "band": "Mud",            "reason": "라이브 BG보컬 저역 마스킹 해소." },
+          { "freq": 800,  "Q": 2.0,  "dB": -3,  "type": "cut",   "band": "Honk",           "reason": "BG보컬 고음역 울림. 리드보컬 공간 확보." },
+          { "freq": 4000, "Q": 1.4,  "dB": 2,   "type": "boost", "band": "Presence",       "reason": "콘서트 BG보컬 존재감." },
+          { "freq": 12000,"Q": 0.7,  "dB": 3,   "type": "boost", "band": "Air",            "reason": "BG보컬 공기감." }
+        ]
+      },
+      "maskingConflicts": ["vocal", "guitar", "keyboard"],
+      "compGuide": {
+        "ratio": "2:1 ~ 3:1",
+        "attack": "8~20ms",
+        "release": "60~120ms",
+        "threshold": "-22 ~ -16 dBFS",
+        "GR": "3~5 dB",
+        "transientNote": "BG보컬은 리드보컬보다 일관된 다이나믹 유지가 핵심. 어택 8~15ms로 자음 질감 보존하면서 모음 레벨 안정화. 다중 BG보컬 채널에는 동일 컴프 세팅 적용 권장 (글루 효과).",
+        "parallel": false,
+        "deEsser": { "freq": 6000, "Q": 8.0, "threshold": "-20dBFS" }
+      }
+    },
+
+    {
+      "_ref": "Mike Senior 'Mixing Secrets for the Small Studio' — Acoustic Guitar",
+      "id": "acoustic",
+      "name": "어쿠스틱 기타",
+      "color": "#ffd60a",
+      "freqRanges": {
+        "body":      [80,  250],
+        "midrange":  [250, 1000],
+        "string":    [1000, 6000],
+        "air":       [6000, 16000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 80,   "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "어쿠기타 저역 차단. 킥·베이스 영역 양보. 80Hz HPF." },
+          { "freq": 200,  "Q": 1.4,  "dB": -4,  "type": "cut",   "band": "Body Boom",      "reason": "어쿠기타 바디 울림. 교회 잔향에서 특히 심함." },
+          { "freq": 400,  "Q": 2.0,  "dB": -3,  "type": "cut",   "band": "Boxiness",       "reason": "박스 울림 제거. 소형 교회 PA에서 현저." },
+          { "freq": 2500, "Q": 1.4,  "dB": 3,   "type": "boost", "band": "String Detail",  "reason": "핑거링/피킹 디테일. 보컬 2kHz 침범 않도록 2.5kHz 이상." },
+          { "freq": 8000, "Q": 0.7,  "dB": 2,   "type": "boost", "band": "Air",            "reason": "어쿠기타 에어감." }
+        ],
+        "concert": [
+          { "freq": 100,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "100Hz HPF." },
+          { "freq": 300,  "Q": 1.4,  "dB": -4,  "type": "cut",   "band": "Mud",            "reason": "대형 PA 중저역 누적." },
+          { "freq": 3000, "Q": 1.4,  "dB": 3,   "type": "boost", "band": "Presence",       "reason": "콘서트 어쿠기타 침투력." },
+          { "freq": 10000,"Q": 0.7,  "dB": 2,   "type": "boost", "band": "Shimmer",        "reason": "어쿠기타 반짝임." }
+        ]
+      },
+      "maskingConflicts": ["guitar", "vocal", "keyboard"],
+      "compGuide": {
+        "ratio": "2:1 ~ 3:1",
+        "attack": "15~40ms",
+        "release": "100~200ms",
+        "threshold": "-18 ~ -12 dBFS",
+        "GR": "2~4 dB",
+        "transientNote": "어쿠기타 피킹은 10~20ms 초기 스파이크. 어택 15ms 이하 설정 시 피킹감 소멸. 어택 20~35ms로 피킹 어택 통과 후 바디 제어. 핑거피킹은 어택 더 길게(35~50ms). 어쿠기타는 EQ가 컴프보다 더 중요한 악기.",
+        "parallel": false
+      }
+    },
+
+    {
+      "_ref": "Bobby Owsinski 'The Mixing Engineer's Handbook' — Keyboards",
+      "id": "keyboard",
+      "name": "메인 건반",
+      "color": "#64d2ff",
+      "freqRanges": {
+        "sub":      [40,  80],
+        "low":      [80,  250],
+        "harmonic": [500, 4000],
+        "shimmer":  [6000, 16000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 120,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "메인건반 저역 HPF. 오르간 페달 베이스는 예외 처리." },
+          { "freq": 250,  "Q": 1.0,  "dB": -4,  "type": "cut",   "band": "Mud",            "reason": "피아노 저역 혼탁. 베이스·킥 공간 확보." },
+          { "freq": 700,  "Q": 1.4,  "dB": -3,  "type": "cut",   "band": "Nasal Mid",      "reason": "피아노 중역 코 울림. 보컬 중역 마스킹 해소." },
+          { "freq": 3000, "Q": 1.4,  "dB": 2,   "type": "boost", "band": "Clarity",        "reason": "건반 고역 명료도. 보컬 3kHz와 레벨 균형 조율." },
+          { "freq": 8000, "Q": 0.7,  "dB": 2,   "type": "boost", "band": "Air",            "reason": "피아노 상단 현 공기감." }
+        ],
+        "concert": [
+          { "freq": 100,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "100Hz HPF." },
+          { "freq": 300,  "Q": 1.4,  "dB": -4,  "type": "cut",   "band": "Mud",            "reason": "중저역 혼탁." },
+          { "freq": 1500, "Q": 2.0,  "dB": -3,  "type": "cut",   "band": "Piano Honk",     "reason": "피아노 1.5kHz 공명 제거." },
+          { "freq": 4000, "Q": 1.4,  "dB": 2,   "type": "boost", "band": "Presence",       "reason": "콘서트 건반 존재감." }
+        ]
+      },
+      "maskingConflicts": ["bass", "vocal_bg", "guitar", "acoustic"],
+      "compGuide": {
+        "ratio": "2:1 ~ 2.5:1",
+        "attack": "20~50ms",
+        "release": "120~250ms",
+        "threshold": "-18 ~ -12 dBFS",
+        "GR": "2~4 dB",
+        "transientNote": "피아노 해머 어택(0~10ms)과 패드 슬로우 어택(50ms+)을 악기 레지스터에 따라 구분. 클래식 피아노는 어택 20~30ms로 해머 질감 보존. 패드/스트링 프로그램은 컴프 최소화. 오르간은 레슬리 효과 보존을 위해 어택 빠르게.",
+        "parallel": false
+      }
+    },
+
+    {
+      "_ref": "David Gibson 'The Art of Mixing' — Synthesizers",
+      "id": "synth",
+      "name": "신디사이저",
+      "color": "#bf5af2",
+      "freqRanges": {
+        "sub":    [40,  100],
+        "low":    [60,  200],
+        "mid":    [200, 2000],
+        "high":   [2000, 8000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 60,   "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "신스 서브베이스 차단 (리드/패드 전제). 베이스 신스는 예외." },
+          { "freq": 300,  "Q": 1.0,  "dB": -4,  "type": "cut",   "band": "Mud",            "reason": "패드 중저역 혼탁. 교회 잔향 누적." },
+          { "freq": 1000, "Q": 1.4,  "dB": -3,  "type": "cut",   "band": "Harsh Mid",      "reason": "신스 리드 중역 공격성 감소. 보컬 1kHz 공간." },
+          { "freq": 4000, "Q": 1.4,  "dB": 2,   "type": "boost", "band": "Presence",       "reason": "신스 리드 존재감. 교회 혼합 사운드에서 침투." },
+          { "freq": 8000, "Q": 0.7,  "dB": 2,   "type": "boost", "band": "Shimmer",        "reason": "패드 고역 질감." }
+        ],
+        "concert": [
+          { "freq": 80,   "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "80Hz HPF." },
+          { "freq": 200,  "Q": 1.0,  "dB": -4,  "type": "cut",   "band": "Mud",            "reason": "신스 중저역." },
+          { "freq": 2000, "Q": 1.4,  "dB": -2,  "type": "cut",   "band": "Harsh Upper Mid","reason": "신스 고역 공격성. 장시간 청취 피로." },
+          { "freq": 5000, "Q": 1.4,  "dB": 3,   "type": "boost", "band": "Presence",       "reason": "콘서트 신스 존재감." }
+        ]
+      },
+      "maskingConflicts": ["keys", "keyboard", "guitar", "vocal"],
+      "compGuide": {
+        "ratio": "3:1 ~ 4:1",
+        "attack": "5~20ms",
+        "release": "80~200ms",
+        "threshold": "-18 ~ -12 dBFS",
+        "GR": "3~6 dB",
+        "transientNote": "신스 파형 타입에 따라 어택 특성 천차만별. 플럭/리드: 어택 타임 짧게(5~10ms)로 트랜지언트 제어. 패드/스트링: 컴프 불필요 또는 극히 가벼운 리미터. 서브베이스 신스: 어택 20ms+로 펀치 보존. 사이드체인을 킥에 연결하여 킥-베이스-서브신스 충돌 해소.",
+        "parallel": true,
+        "parallelRatio": "40% Wet — 신스 리드에 펀치 추가"
+      }
+    },
+
+    {
+      "_ref": "Yamaha Sound Reinforcement Handbook / AES Overhead Drum Miking Practice",
+      "id": "drum_oh",
+      "name": "드럼 오버헤드",
+      "color": "#ff9f0a",
+      "freqRanges": {
+        "body":   [200, 800],
+        "sheen":  [2000, 6000],
+        "air":    [6000, 20000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 250,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "OH 저역 HPF. 킥·스네어 클로즈마이크와 저역 중복 차단." },
+          { "freq": 600,  "Q": 1.4,  "dB": -3,  "type": "cut",   "band": "Clang",          "reason": "심벌 금속 울림. 예배 잔향 누적." },
+          { "freq": 3000, "Q": 1.4,  "dB": -2,  "type": "cut",   "band": "Harshness",      "reason": "스네어 크랙 과잉 방지. 교회에서 공격성 통제." },
+          { "freq": 10000,"Q": 0.7,  "dB": 2,   "type": "boost", "band": "Shimmer",        "reason": "심벌 고역 에어감. 10kHz 이상 쉘빙." }
+        ],
+        "concert": [
+          { "freq": 200,  "Q": 0.7,  "dB": -999, "type": "HPF",   "band": "Low Cut HPF",   "reason": "200Hz HPF." },
+          { "freq": 500,  "Q": 1.4,  "dB": -3,  "type": "cut",   "band": "Boxiness",       "reason": "OH 중역 박스 울림." },
+          { "freq": 8000, "Q": 0.5,  "dB": 3,   "type": "boost", "band": "Air",            "reason": "콘서트 심벌 반짝임." }
+        ]
+      },
+      "maskingConflicts": ["cymbal", "snare", "vocal"],
+      "compGuide": {
+        "ratio": "2:1 ~ 3:1",
+        "attack": "20~50ms",
+        "release": "200~400ms",
+        "threshold": "-18 ~ -12 dBFS",
+        "GR": "2~4 dB",
+        "transientNote": "오버헤드는 드럼 풀사운드(룸 블렌드) 캡처가 목적. 어택 30ms+ 로 심벌 스틱 타격감 보존. 스테레오 링크 컴프 필수(좌우 이미지 보존). M/S 컴프로 중앙(스네어/킥) vs 사이드(심벌) 제어하면 가장 전문적.",
+        "parallel": false
+      }
+    },
+
+    {
+      "_ref": "Bobby Owsinski 'The Mixing Engineer's Handbook' — Electronic Drums",
+      "id": "edrum",
+      "name": "전자드럼",
+      "color": "#ff6b6b",
+      "freqRanges": {
+        "sub":    [40,  80],
+        "body":   [80,  200],
+        "click":  [2000, 6000],
+        "noise":  [6000, 12000]
+      },
+      "eqGuide": {
+        "church": [
+          { "freq": 40,   "Q": 0.7,  "dB": 3,   "type": "boost", "band": "Sub Punch",      "reason": "전자드럼 서브 보강. 교회 저역 흡수 보상." },
+          { "freq": 200,  "Q": 1.4,  "dB": -3,  "type": "cut",   "band": "Body Mud",       "reason": "전자드럼 특유의 인조적 중저역 혼탁." },
+          { "freq": 600,  "Q": 2.0,  "dB": -4,  "type": "cut",   "band": "Sample Artefact","reason": "전자드럼 샘플 부자연스러운 중역 제거." },
+          { "freq": 3000, "Q": 2.8,  "dB": 4,   "type": "boost", "band": "Click Presence", "reason": "전자드럼 히트 명료도. 킥·스네어 어택 클릭." },
+          { "freq": 8000, "Q": 0.7,  "dB": -2,  "type": "cut",   "band": "Digital Harshness","reason": "전자드럼 고역 디지털 거슬림 완화." }
+        ],
+        "concert": [
+          { "freq": 50,   "Q": 0.7,  "dB": 4,   "type": "boost", "band": "Sub Kick",       "reason": "전자드럼 서브킥 물리적 체감." },
+          { "freq": 250,  "Q": 1.4,  "dB": -4,  "type": "cut",   "band": "Mud",            "reason": "샘플 저역 혼탁." },
+          { "freq": 4000, "Q": 2.0,  "dB": 3,   "type": "boost", "band": "Attack",         "reason": "콘서트 전자드럼 어택 명료화." },
+          { "freq": 10000,"Q": 0.7,  "dB": -3,  "type": "cut",   "band": "Harshness",      "reason": "디지털 노이즈 통제." }
+        ]
+      },
+      "maskingConflicts": ["kick", "snare", "bass"],
+      "compGuide": {
+        "ratio": "3:1 ~ 6:1",
+        "attack": "1~5ms",
+        "release": "50~120ms",
+        "threshold": "-20 ~ -12 dBFS",
+        "GR": "4~8 dB",
+        "transientNote": "전자드럼은 샘플 기반 특성상 이미 균일한 다이나믹. 컴프의 역할은 레벨 안정화보다 샘플 리플레이스 후 성격 부여에 가까움. 어택 1~3ms 빠르게 설정하여 디지털 클리핑 방지 리미터 역할. 믹스에서 어쿠스틱 드럼처럼 들리려면 병렬 컴프(Parallel) + 룸 IR 리버브 병행.",
+        "parallel": true,
+        "parallelRatio": "50% Wet — 자연스러운 드럼 질감 부여"
+      }
     }
   ],
 

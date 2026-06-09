@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import presetData from '../../data/compressorPresets.json'
 import FaderSlider from '../ui/FaderSlider'
 import KnobControl from '../ui/KnobControl'
+import { parseGuardedText } from '../../lib/hallucinationGuard'
 
 // ── 타입 ─────────────────────────────────────────────────────────────────
 
@@ -231,6 +232,145 @@ function drawTransferCurve(
 
 }
 
+// ── 실시간 노브 조언 엔진 ──────────────────────────────────────────────────
+
+interface ParamAdvice {
+  param:       string
+  value:       string
+  status:      'good' | 'warn' | 'danger'
+  description: string
+  problem:     string
+  tip:         string
+}
+
+function getLiveAdvice(p: Preset, instr: Instrument): ParamAdvice[] {
+  const advice: ParamAdvice[] = []
+  const atkWindow = instr.transientProfile.attackPhaseMs[1]  // 트랜지언트 지속 시간
+
+  // ── ATTACK ────────────────────────────────────────────────────────────
+  if (p.attackMs <= atkWindow * 0.5) {
+    advice.push({
+      param: 'ATTACK', value: `${p.attackMs}ms`,
+      status: 'danger',
+      description: `어택(${p.attackMs}ms)이 ${instr.name} 트랜지언트(${atkWindow}ms)보다 훨씬 짧습니다.`,
+      problem: `초기 어택이 컴프에 잡혀 '클릭감·픽 어택·자음 질감'이 소멸합니다. 소리가 납작하고 생기 없이 들립니다.`,
+      tip: `최소 ${atkWindow}ms 이상으로 올리세요. ${instr.name}의 트랜지언트를 통과시킨 후 압축이 시작되어야 합니다.`,
+    })
+  } else if (p.attackMs <= atkWindow) {
+    advice.push({
+      param: 'ATTACK', value: `${p.attackMs}ms`,
+      status: 'warn',
+      description: `어택(${p.attackMs}ms)이 ${instr.name} 트랜지언트 구간(${atkWindow}ms) 내에 있습니다.`,
+      problem: `트랜지언트 일부가 압축됩니다. 어택감이 약해질 수 있습니다.`,
+      tip: `의도적인 어택 억제라면 OK. 아니라면 ${atkWindow + 5}ms 이상으로 올리세요.`,
+    })
+  } else {
+    advice.push({
+      param: 'ATTACK', value: `${p.attackMs}ms`,
+      status: 'good',
+      description: `어택(${p.attackMs}ms)이 ${instr.name} 트랜지언트(${atkWindow}ms)를 완전히 통과시킵니다.`,
+      problem: '',
+      tip: `현재 어택은 자연스러운 트랜지언트 보존에 최적입니다. 더 올리면 피크 제어력이 낮아집니다.`,
+    })
+  }
+
+  // ── RELEASE ───────────────────────────────────────────────────────────
+  if (p.releaseMs < 30) {
+    advice.push({
+      param: 'RELEASE', value: `${p.releaseMs}ms`,
+      status: 'danger',
+      description: `릴리즈(${p.releaseMs}ms)가 매우 짧습니다.`,
+      problem: `GR이 너무 빨리 복귀해 '펌핑(Pumping)' 또는 '브리딩(Breathing)' 아티팩트가 발생합니다. 특히 ${instr.name} 같은 서스테인이 있는 악기에서 두드러집니다.`,
+      tip: `최소 60ms 이상으로 올리세요. 빠른 패시지라도 40ms 이하는 피하는 것이 좋습니다.`,
+    })
+  } else if (p.releaseMs > 400 && instr.character === 'percussive') {
+    advice.push({
+      param: 'RELEASE', value: `${p.releaseMs}ms`,
+      status: 'warn',
+      description: `릴리즈(${p.releaseMs}ms)가 타악기 계열에 비해 깁니다.`,
+      problem: `이전 히트의 GR이 다음 히트까지 남아있어 다음 트랜지언트가 약해집니다. 드럼 그루브가 뭉개질 수 있습니다.`,
+      tip: `BPM에 맞춰 줄이세요. 120BPM 기준 최대 250ms 권장입니다.`,
+    })
+  } else {
+    advice.push({
+      param: 'RELEASE', value: `${p.releaseMs}ms`,
+      status: 'good',
+      description: `릴리즈(${p.releaseMs}ms)가 ${instr.name}에 적합한 범위입니다.`,
+      problem: '',
+      tip: `음악의 BPM을 기준으로 릴리즈를 미세 조정하세요. 한 박자의 절반 이하가 일반적인 기준입니다.`,
+    })
+  }
+
+  // ── RATIO ─────────────────────────────────────────────────────────────
+  const ratioVal = p.ratio
+  if (ratioVal >= 10 && !['edrum','drum_oh','kick','snare'].includes(instr.id)) {
+    advice.push({
+      param: 'RATIO', value: `${ratioVal.toFixed(1)}:1`,
+      status: 'danger',
+      description: `비율(${ratioVal.toFixed(1)}:1)이 ${instr.name}에 매우 높습니다.`,
+      problem: `음악적 다이나믹이 거의 사라집니다. 감정 표현이 소멸하고 소리가 '눌린' 느낌이 납니다.`,
+      tip: `단독 사용 시 4:1 이하를 권장합니다. 10:1 이상은 패러렐 컴프(Dry 블렌드)로만 사용하세요.`,
+    })
+  } else if (ratioVal < 1.5) {
+    advice.push({
+      param: 'RATIO', value: `${ratioVal.toFixed(1)}:1`,
+      status: 'warn',
+      description: `비율(${ratioVal.toFixed(1)}:1)이 매우 낮아 컴프 효과가 거의 없습니다.`,
+      problem: `피크 제어가 거의 안 됩니다. 스레숄드를 낮춰도 의미 있는 GR이 나오지 않습니다.`,
+      tip: `효과적인 컴프를 원하면 최소 2:1 이상으로 올리세요.`,
+    })
+  } else {
+    advice.push({
+      param: 'RATIO', value: `${ratioVal.toFixed(1)}:1`,
+      status: 'good',
+      description: `비율(${ratioVal.toFixed(1)}:1)이 ${instr.name}에 적절한 범위입니다.`,
+      problem: '',
+      tip: `${ratioVal < 4 ? '글루 컴프 범위입니다. GR을 3~6dB로 유지하면 자연스럽습니다.' : '다이나믹 컨트롤 범위입니다. GR이 과도하지 않은지 확인하세요.'}`,
+    })
+  }
+
+  // ── THRESHOLD ─────────────────────────────────────────────────────────
+  const thrVal = p.thresholdDBFS
+  if (thrVal > -8) {
+    advice.push({
+      param: 'THRESHOLD', value: `${thrVal}dBFS`,
+      status: 'warn',
+      description: `스레숄드(${thrVal}dBFS)가 높아 피크에서만 컴프가 작동합니다.`,
+      problem: `평균 레벨에서는 컴프가 거의 작동하지 않습니다. 피크 리미팅에 가까운 동작을 합니다.`,
+      tip: `컴프를 '음악적으로' 사용하려면 -15~-25dBFS 범위가 일반적입니다.`,
+    })
+  } else if (thrVal < -30) {
+    advice.push({
+      param: 'THRESHOLD', value: `${thrVal}dBFS`,
+      status: 'warn',
+      description: `스레숄드(${thrVal}dBFS)가 낮아 거의 모든 신호가 압축됩니다.`,
+      problem: `프로그램 전체가 항상 압축된 상태입니다. 다이나믹이 사라지고 피로감을 줄 수 있습니다.`,
+      tip: `메이크업 게인을 낮추고 스레숄드를 올리거나, 패러렐 컴프 방식을 고려하세요.`,
+    })
+  } else {
+    advice.push({
+      param: 'THRESHOLD', value: `${thrVal}dBFS`,
+      status: 'good',
+      description: `스레숄드(${thrVal}dBFS)가 적절한 범위입니다.`,
+      problem: '',
+      tip: `피크 신호가 스레숄드를 얼마나 초과하는지 GR 미터로 확인하며 조정하세요.`,
+    })
+  }
+
+  // ── 조합 경고 ─────────────────────────────────────────────────────────
+  if (p.attackMs < 5 && p.releaseMs < 50 && ratioVal > 6) {
+    advice.push({
+      param: 'COMBO', value: '조합 경고',
+      status: 'danger',
+      description: '빠른 어택 + 짧은 릴리즈 + 높은 비율의 조합입니다.',
+      problem: '소리가 극도로 압축되어 왜곡(Distortion)이 발생할 수 있습니다. 특히 저음역 악기에서 두드러집니다.',
+      tip: '세 파라미터 중 하나를 완화하세요. 패러렐 컴프 방식으로 전환하는 것도 좋은 해결책입니다.',
+    })
+  }
+
+  return advice
+}
+
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────
 
 export default function CompressorGuide() {
@@ -242,6 +382,7 @@ export default function CompressorGuide() {
   const [liveRelease,  setLiveRelease] = useState(0.4)
   const [liveThresh,   setLiveThresh]  = useState(0.5)
   const [showRules,    setShowRules]   = useState(false)
+  const [lastChanged,  setLastChanged] = useState<string | null>(null)
 
   const transCanvasRef  = useRef<HTMLCanvasElement>(null)
   const transferCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -425,28 +566,28 @@ export default function CompressorGuide() {
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', flex: 1 }}>
               <KnobControl
                 value={liveRatio}
-                onChange={setLiveRatio}
+                onChange={v => { setLiveRatio(v); setLastChanged('RATIO') }}
                 label="RATIO"
                 displayValue={`${(1 + liveRatio * 19).toFixed(1)}:1`}
                 color={color}
               />
               <KnobControl
                 value={liveAttack}
-                onChange={setLiveAttack}
+                onChange={v => { setLiveAttack(v); setLastChanged('ATTACK') }}
                 label="ATTACK"
                 displayValue={`${Math.round(liveAttack * 200)}ms`}
                 color={color}
               />
               <KnobControl
                 value={liveRelease}
-                onChange={setLiveRelease}
+                onChange={v => { setLiveRelease(v); setLastChanged('RELEASE') }}
                 label="RELEASE"
                 displayValue={`${Math.round(liveRelease * 600)}ms`}
                 color={color}
               />
               <KnobControl
                 value={liveThresh}
-                onChange={setLiveThresh}
+                onChange={v => { setLiveThresh(v); setLastChanged('THRESHOLD') }}
                 label="THRESHOLD"
                 displayValue={`${Math.round(-liveThresh * 40)}dBFS`}
                 color={color}
@@ -502,6 +643,13 @@ export default function CompressorGuide() {
           </div>
         </div>
 
+        {/* 실시간 노브 조언 패널 */}
+        <LiveAdvicePanel
+          advice={getLiveAdvice(livePreset, activeInstr)}
+          lastChanged={lastChanged}
+          color={color}
+        />
+
         {/* 트랜지언트 노트 + 룰 오브 썸 */}
         <div style={{ background: '#050508', border: `1px solid ${color}22`,
                       borderRadius: 8, padding: '14px 16px' }}>
@@ -552,6 +700,337 @@ export default function CompressorGuide() {
             ))}
           </div>
         </div>
+
+        {/* AI 질문 패널 */}
+        <CompAskPanel
+          instrument={activeInstr.name}
+          preset={presetKey}
+          ratio={livePreset.ratio}
+          attackMs={livePreset.attackMs}
+          releaseMs={livePreset.releaseMs}
+          thresholdDBFS={livePreset.thresholdDBFS}
+          color={color}
+        />
+
+      </div>
+    </div>
+  )
+}
+
+// ── 실시간 조언 패널 ──────────────────────────────────────────────────────
+
+const STATUS_COLOR: Record<ParamAdvice['status'], string> = {
+  good:   'var(--accent-green)',
+  warn:   'var(--accent-amber)',
+  danger: 'var(--accent-red)',
+}
+const STATUS_ICON: Record<ParamAdvice['status'], string> = {
+  good: '✓', warn: '⚠', danger: '✕',
+}
+
+function LiveAdvicePanel({
+  advice,
+  lastChanged,
+  color,
+}: {
+  advice:      ParamAdvice[]
+  lastChanged: string | null
+  color:       string
+}) {
+  const sorted = lastChanged
+    ? [...advice].sort((a, b) =>
+        a.param === lastChanged ? -1 : b.param === lastChanged ? 1 : 0
+      )
+    : advice
+
+  return (
+    <div style={{
+      background:   'var(--bg-elevated)',
+      border:       `1px solid ${color}22`,
+      borderRadius: 8,
+      overflow:     'hidden',
+    }}>
+      <div style={{
+        padding:       '10px 16px',
+        borderBottom:  `1px solid ${color}22`,
+        display:       'flex',
+        alignItems:    'center',
+        gap:           8,
+      }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+        <span style={{
+          fontFamily:    "'JetBrains Mono', monospace",
+          fontSize:      11,
+          fontWeight:    700,
+          color,
+          letterSpacing: 1,
+        }}>
+          LIVE ADVISOR
+        </span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+          노브를 움직이면 실시간으로 조언합니다
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {sorted.map((a, i) => {
+          const isHighlighted = a.param === lastChanged
+          const statusColor   = STATUS_COLOR[a.status]
+          return (
+            <div key={i} style={{
+              padding:    '12px 16px',
+              background: isHighlighted ? `${statusColor}08` : 'transparent',
+              borderLeft: isHighlighted ? `3px solid ${statusColor}` : '3px solid transparent',
+              transition: 'all 0.2s',
+            }}>
+              {/* 파라미터 헤더 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{
+                  fontFamily:    "'JetBrains Mono', monospace",
+                  fontSize:      10,
+                  fontWeight:    700,
+                  color:         statusColor,
+                  letterSpacing: 1,
+                  minWidth:      90,
+                }}>
+                  {STATUS_ICON[a.status]} {a.param}
+                </span>
+                <span style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize:   12,
+                  fontWeight: 700,
+                  color:      statusColor,
+                }}>
+                  {a.value}
+                </span>
+              </div>
+
+              {/* 현재 상태 설명 */}
+              <div style={{
+                fontSize:   12,
+                color:      'var(--text-primary)',
+                lineHeight: 1.6,
+                fontFamily: "'Inter', system-ui, sans-serif",
+                marginBottom: a.problem ? 6 : 0,
+              }}>
+                {a.description}
+              </div>
+
+              {/* 문제점 (있을 때만) */}
+              {a.problem && (
+                <div style={{
+                  fontSize:     11,
+                  color:        statusColor,
+                  lineHeight:   1.6,
+                  fontFamily:   "'Inter', system-ui, sans-serif",
+                  background:   `${statusColor}0a`,
+                  borderRadius: 4,
+                  padding:      '6px 10px',
+                  marginBottom: 6,
+                }}>
+                  <span style={{ fontWeight: 700 }}>문제: </span>{a.problem}
+                </div>
+              )}
+
+              {/* 실무 조언 */}
+              <div style={{
+                fontSize:   11,
+                color:      'var(--text-secondary)',
+                lineHeight: 1.6,
+                fontFamily: "'Inter', system-ui, sans-serif",
+                paddingLeft: 4,
+                borderLeft:  '2px solid var(--border)',
+              }}>
+                <span style={{ color: 'var(--accent-amber)', fontWeight: 700 }}>조언: </span>
+                {a.tip}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── CompAskPanel — 컴프레서 인라인 AI 질문 패널 ──────────────────────────────
+
+interface CompAskPanelProps {
+  instrument:    string   // 악기 이름 (예: 보컬)
+  preset:        string   // 프리셋 키 (예: natural)
+  ratio:         number
+  attackMs:      number
+  releaseMs:     number
+  thresholdDBFS: number
+  color:         string   // 악기 색상 (CSS hex)
+}
+
+interface RagResponse {
+  expertAnswer: string
+  trackA:       { answer: string }
+  trackB:       { answer: string }
+}
+
+function CompAskPanel({
+  instrument, preset, ratio, attackMs, releaseMs, thresholdDBFS, color,
+}: CompAskPanelProps) {
+  const [query,   setQuery]   = useState('')
+  const [answer,  setAnswer]  = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const buildContext = (): string =>
+    `[Compressor Context: 악기=${instrument}, Preset=${preset}, ` +
+    `Ratio=${ratio.toFixed(1)}:1, Attack=${attackMs}ms, ` +
+    `Release=${releaseMs}ms, Threshold=${thresholdDBFS}dBFS]`
+
+  const send = async () => {
+    const q = query.trim()
+    if (!q || loading) return
+    setLoading(true)
+    setError(null)
+    setAnswer(null)
+
+    try {
+      const fullQuery = `${buildContext()}\n사용자 질문: ${q}`
+      const res  = await fetch('/api/rag', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ query: fullQuery }),
+      })
+      if (!res.ok) throw new Error(`서버 오류 ${res.status}`)
+      const data = await res.json() as RagResponse
+      // hallucinationGuard 통과 필수 (SPEC.md 요건)
+      const lines = parseGuardedText(data.expertAnswer ?? '')
+      setAnswer(lines.map(l => l.text).join('\n'))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'AI 응답 실패')
+    } finally {
+      setLoading(false)
+      inputRef.current?.focus()
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      void send()
+    }
+  }
+
+  return (
+    <div style={{
+      background:   'var(--bg-elevated)',
+      border:       `1px solid ${color}33`,
+      borderRadius: 8,
+      overflow:     'hidden',
+    }}>
+      {/* 헤더 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '10px 16px',
+        borderBottom: `1px solid ${color}22`,
+      }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+        <span style={{
+          fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+          fontWeight: 700, color, letterSpacing: 1,
+        }}>
+          AI ADVISOR
+        </span>
+        <span style={{
+          fontSize: 10, color: 'var(--text-muted)',
+          fontFamily: 'Inter, sans-serif',
+        }}>
+          현재 설정 기준으로 질문하세요
+        </span>
+      </div>
+
+      {/* 컨텍스트 미리보기 */}
+      <div style={{
+        padding: '8px 16px',
+        fontSize: 9, color: 'var(--text-muted)',
+        fontFamily: 'JetBrains Mono, monospace',
+        borderBottom: `1px solid ${color}11`,
+        lineHeight: 1.6,
+      }}>
+        {buildContext()}
+      </div>
+
+      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+        {/* 입력 */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <textarea
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="예: 이 세팅에서 보컬이 펌핑되는 이유는? (Enter로 전송)"
+            rows={2}
+            style={{
+              flex:         1,
+              background:   '#000',
+              border:       `1px solid ${color}44`,
+              borderRadius: 6,
+              color:        'var(--text-primary)',
+              fontSize:     12,
+              fontFamily:   'Inter, sans-serif',
+              padding:      '8px 12px',
+              resize:       'none',
+              lineHeight:   1.6,
+              outline:      'none',
+            }}
+          />
+          <button
+            onClick={() => { void send() }}
+            disabled={loading || !query.trim()}
+            style={{
+              minWidth:     56,
+              minHeight:    56,
+              background:   loading ? 'transparent' : `${color}22`,
+              border:       `1px solid ${color}`,
+              borderRadius: 6,
+              color,
+              fontSize:     16,
+              cursor:       loading || !query.trim() ? 'default' : 'pointer',
+              opacity:      loading || !query.trim() ? 0.4 : 1,
+              flexShrink:   0,
+            }}
+          >
+            {loading ? '…' : '▶'}
+          </button>
+        </div>
+
+        {/* 에러 */}
+        {error && (
+          <div style={{
+            background:   'var(--accent-red-10)',
+            border:       '1px solid var(--accent-red)',
+            borderRadius: 6,
+            padding:      '8px 12px',
+            fontSize:     12, color: 'var(--accent-red)',
+            fontFamily:   'monospace',
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* AI 응답 */}
+        {answer && (
+          <div style={{
+            background:   '#000',
+            border:       `1px solid ${color}22`,
+            borderRadius: 6,
+            padding:      '12px 14px',
+            fontSize:     12, color: 'var(--text-primary)',
+            fontFamily:   'Inter, system-ui, sans-serif',
+            lineHeight:   1.8,
+            whiteSpace:   'pre-wrap',
+          }}>
+            {answer}
+          </div>
+        )}
 
       </div>
     </div>
