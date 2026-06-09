@@ -21,7 +21,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useAudioCapture }  from '../../hooks/useAudioCapture'
-import { useSharedAudio }   from '../../hooks/useSharedAudio'
 import { useLoudnessMeter, type LoudnessMetrics } from '../../hooks/useLoudnessMeter'
 import Goniometer           from './Goniometer'
 import LevelMeter           from './LevelMeter'
@@ -98,8 +97,8 @@ export default function ClarityM() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const capture  = useAudioCapture()
-  const { audioCtx, srcNode } = useSharedAudio(capture.state.stream)
-  const loudness = useLoudnessMeter(audioCtx, srcNode)
+  const loudness = useLoudnessMeter(capture.state.stream)
+  const { audioCtx, srcNode } = loudness
 
   const containerW = useContainerWidth(containerRef)
   const effectiveW = fullscreen ? window.innerWidth : containerW

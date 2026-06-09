@@ -3,9 +3,10 @@
  *
  * ITU-R BS.1770-4 / EBU R128 준수 라우드니스 측정 훅
  *
- * ─ 변경사항 ────────────────────────────────────────────────────────────────
- *   (stream) → (audioCtx, srcNode) 시그니처 변경
- *   AudioContext를 직접 생성하지 않음 — useSharedAudio가 제공하는 단일 컨텍스트 사용
+ * ─ 아키텍처 ─────────────────────────────────────────────────────────────────
+ *   stream → (내부) AudioContext #1 (유일) → srcNode
+ *   srcNode를 return하여 Goniometer / RTA / CorrelationMeter가 공유
+ *   → Chrome "다중 AudioContext" 버그 회피 (AudioContext는 단 1개)
  *
  * 구현 기준:
  *   - K-weighting: 2단계 IIR (ITU-R BS.1770-4 Annex 1)
@@ -149,12 +150,16 @@ function computeLRA(history: number[]): number {
   return Math.max(0, (v[Math.floor(v.length * 0.95)] ?? v[v.length - 1]!) - (v[Math.floor(v.length * 0.10)] ?? v[0]!))
 }
 
+// ── 공유 오디오 컨텍스트 타입 ─────────────────────────────────────────────────
+
+export interface SharedAudio {
+  audioCtx: AudioContext | null
+  srcNode:  MediaStreamAudioSourceNode | null
+}
+
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
-export function useLoudnessMeter(
-  audioCtx: AudioContext | null,
-  srcNode:  AudioNode | null,
-) {
+export function useLoudnessMeter(stream: MediaStream | null) {
   const procRef    = useRef<ScriptProcessorNode | null>(null)
   const kStateL1   = useRef<[number, number]>([0, 0])
   const kStateL2   = useRef<[number, number]>([0, 0])
@@ -173,8 +178,9 @@ export function useLoudnessMeter(
   const tpL        = useRef(-Infinity)
   const tpR        = useRef(-Infinity)
 
-  const [metrics, setMetrics] = useState<LoudnessMetrics>(SILENCE)
-  const [isActive, setIsActive] = useState(false)
+  const [metrics,     setMetrics]     = useState<LoudnessMetrics>(SILENCE)
+  const [isActive,    setIsActive]    = useState(false)
+  const [sharedAudio, setSharedAudio] = useState<SharedAudio>({ audioCtx: null, srcNode: null })
 
   const reset = useCallback(() => {
     mBufL.current = []; mBufR.current = []
@@ -189,89 +195,117 @@ export function useLoudnessMeter(
   }, [])
 
   useEffect(() => {
-    if (!audioCtx || !srcNode) {
+    if (!stream) {
       reset()
+      setIsActive(false)
+      setSharedAudio({ audioCtx: null, srcNode: null })
       return
     }
 
     let cancelled = false
 
-    coeffsRef.current = computeKWeightCoeffs(audioCtx.sampleRate)
+    const AudioCtx =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const ctx = new AudioCtx()
 
-    const bufSize     = 4096
-    const mWinFrames  = Math.ceil(0.400 * audioCtx.sampleRate / bufSize)
-    const sWinFrames  = Math.ceil(3.000 * audioCtx.sampleRate / bufSize)
-    const integFrames = Math.ceil(0.400 * audioCtx.sampleRate / bufSize)
+    const doSetup = () => {
+      if (cancelled || ctx.state === 'closed') return
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const proc     = audioCtx.createScriptProcessor(bufSize, 2, 2)
-    const silencer = audioCtx.createGain()
-    silencer.gain.value = 0
+      coeffsRef.current = computeKWeightCoeffs(ctx.sampleRate)
 
-    proc.onaudioprocess = (e) => {
-      if (cancelled) return
-      const coeffs = coeffsRef.current
-      if (!coeffs) return
+      const bufSize     = 4096
+      const mWinFrames  = Math.ceil(0.400 * ctx.sampleRate / bufSize)
+      const sWinFrames  = Math.ceil(3.000 * ctx.sampleRate / bufSize)
+      const integFrames = Math.ceil(0.400 * ctx.sampleRate / bufSize)
 
-      const inL = e.inputBuffer.getChannelData(0)
-      const inR = e.inputBuffer.numberOfChannels > 1
-        ? e.inputBuffer.getChannelData(1)
-        : e.inputBuffer.getChannelData(0)
+      const src      = ctx.createMediaStreamSource(stream)
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      const proc     = ctx.createScriptProcessor(bufSize, 2, 2)
+      const silencer = ctx.createGain()
+      silencer.gain.value = 0
 
-      const kL = kWeight(inL, coeffs, kStateL1.current, kStateL2.current)
-      const kR = kWeight(inR, coeffs, kStateR1.current, kStateR2.current)
+      proc.onaudioprocess = (e) => {
+        if (cancelled) return
+        const coeffs = coeffsRef.current
+        if (!coeffs) return
 
-      const tp_l = computeTruePeak(inL)
-      const tp_r = computeTruePeak(inR)
-      if (tp_l > tpL.current) tpL.current = tp_l
-      if (tp_r > tpR.current) tpR.current = tp_r
+        const inL = e.inputBuffer.getChannelData(0)
+        const inR = e.inputBuffer.numberOfChannels > 1
+          ? e.inputBuffer.getChannelData(1)
+          : e.inputBuffer.getChannelData(0)
 
-      const msL = meanSquare(kL)
-      const msR = meanSquare(kR)
+        const kL = kWeight(inL, coeffs, kStateL1.current, kStateL2.current)
+        const kR = kWeight(inR, coeffs, kStateR1.current, kStateR2.current)
 
-      mBufL.current.push(msL); mBufR.current.push(msR)
-      if (mBufL.current.length > mWinFrames) { mBufL.current.shift(); mBufR.current.shift() }
-      const M = msToLUFS((mBufL.current.reduce((s, v) => s + v, 0) / mBufL.current.length) + (mBufR.current.reduce((s, v) => s + v, 0) / mBufR.current.length))
+        const tp_l = computeTruePeak(inL)
+        const tp_r = computeTruePeak(inR)
+        if (tp_l > tpL.current) tpL.current = tp_l
+        if (tp_r > tpR.current) tpR.current = tp_r
 
-      sBufL.current.push(msL); sBufR.current.push(msR)
-      if (sBufL.current.length > sWinFrames) { sBufL.current.shift(); sBufR.current.shift() }
-      const S = msToLUFS((sBufL.current.reduce((s, v) => s + v, 0) / sBufL.current.length) + (sBufR.current.reduce((s, v) => s + v, 0) / sBufR.current.length))
+        const msL = meanSquare(kL)
+        const msR = meanSquare(kR)
 
-      stHistory.current.push(S)
-      if (stHistory.current.length > 1800) stHistory.current.shift()
+        mBufL.current.push(msL); mBufR.current.push(msR)
+        if (mBufL.current.length > mWinFrames) { mBufL.current.shift(); mBufR.current.shift() }
+        const M = msToLUFS(
+          (mBufL.current.reduce((s, v) => s + v, 0) / mBufL.current.length) +
+          (mBufR.current.reduce((s, v) => s + v, 0) / mBufR.current.length)
+        )
 
-      integAccL.current += msL; integAccR.current += msR; integN.current++
-      if (integN.current >= integFrames) {
-        integBlocks.current.push({ ms: (integAccL.current + integAccR.current) / (2 * integN.current) })
-        if (integBlocks.current.length > 18000) integBlocks.current.shift()
-        integAccL.current = 0; integAccR.current = 0; integN.current = 0
+        sBufL.current.push(msL); sBufR.current.push(msR)
+        if (sBufL.current.length > sWinFrames) { sBufL.current.shift(); sBufR.current.shift() }
+        const S = msToLUFS(
+          (sBufL.current.reduce((s, v) => s + v, 0) / sBufL.current.length) +
+          (sBufR.current.reduce((s, v) => s + v, 0) / sBufR.current.length)
+        )
+
+        stHistory.current.push(S)
+        if (stHistory.current.length > 1800) stHistory.current.shift()
+
+        integAccL.current += msL; integAccR.current += msR; integN.current++
+        if (integN.current >= integFrames) {
+          integBlocks.current.push({ ms: (integAccL.current + integAccR.current) / (2 * integN.current) })
+          if (integBlocks.current.length > 18000) integBlocks.current.shift()
+          integAccL.current = 0; integAccR.current = 0; integN.current = 0
+        }
+
+        setMetrics({
+          M, S,
+          I:     gatedIntegrated(integBlocks.current),
+          LRA:   computeLRA(stHistory.current),
+          TP_L:  tpL.current,
+          TP_R:  tpR.current,
+          instL: tp_l,
+          instR: tp_r,
+        })
       }
 
-      setMetrics({
-        M, S,
-        I:     gatedIntegrated(integBlocks.current),
-        LRA:   computeLRA(stHistory.current),
-        TP_L:  tpL.current,
-        TP_R:  tpR.current,
-        instL: tp_l,
-        instR: tp_r,
-      })
+      src.connect(proc)
+      proc.connect(silencer)
+      silencer.connect(ctx.destination)
+      procRef.current = proc
+
+      setIsActive(true)
+      // AudioContext와 srcNode를 노출 → 다른 컴포넌트가 같은 컨텍스트 공유
+      setSharedAudio({ audioCtx: ctx, srcNode: src })
     }
 
-    srcNode.connect(proc)
-    proc.connect(silencer)
-    silencer.connect(audioCtx.destination)
-    procRef.current = proc
-    setIsActive(true)
+    if (ctx.state === 'running') {
+      doSetup()
+    } else {
+      ctx.resume().then(doSetup).catch(doSetup)
+    }
 
     return () => {
       cancelled = true
-      try { proc.disconnect() } catch {}
-      try { silencer.disconnect() } catch {}
+      try { procRef.current?.disconnect() } catch {}
       procRef.current = null
       setIsActive(false)
+      setSharedAudio({ audioCtx: null, srcNode: null })
+      void ctx.close()
     }
-  }, [audioCtx, srcNode, reset])
+  }, [stream, reset])
 
-  return { metrics, reset, isActive }
+  return { metrics, reset, isActive, ...sharedAudio }
 }
